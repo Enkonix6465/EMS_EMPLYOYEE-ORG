@@ -1,0 +1,72 @@
+/* Modern Dashboard Visual Polish */
+.modern-dashboard-bg {
+  background: linear-gradient(135deg, #e0e7ff 0%, #f0fdfa 100%);
+  min-height: 100vh;
+  position: relative;
+}
+@media (prefers-color-scheme: dark) {
+  .modern-dashboard-bg {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  }
+}
+.modern-bg-animated {
+  background: radial-gradient(circle at 80% 20%, #6366f1 0%, transparent 60%),
+              radial-gradient(circle at 20% 80%, #fbbf24 0%, transparent 60%),
+              radial-gradient(circle at 50% 50%, #38bdf8 0%, transparent 70%);
+  opacity: 0.18;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  position: absolute;
+  pointer-events: none;
+  animation: bgMove 18s linear infinite alternate;
+}
+@keyframes bgMove {
+  0% { background-position: 80% 20%, 20% 80%, 50% 50%; }
+  100% { background-position: 60% 40%, 40% 60%, 55% 45%; }
+}
+.bg-glass {
+  background: rgba(255,255,255,0.7);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.18);
+}
+@media (prefers-color-scheme: dark) {
+  .bg-glass {
+    background: rgba(30,41,59,0.7);
+    border: 1px solid rgba(51,65,85,0.18);
+  }
+}
+.text-gradient {
+  background: linear-gradient(90deg, #6366f1, #fbbf24, #38bdf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-fill-color: transparent;
+}
+.text-glass {
+  color: #334155;
+  text-shadow: 0 2px 8px rgba(31,38,135,0.08);
+}
+@media (prefers-color-scheme: dark) {
+  .text-glass {
+    color: #f1f5f9;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.18);
+  }
+}
+/* Chatbot widget polish */
+.chatbot-glass {
+  background: rgba(255,255,255,0.85);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.18);
+  backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.18);
+  transition: all 0.3s cubic-bezier(.39,.575,.565,1);
+}
+@media (prefers-color-scheme: dark) {
+  .chatbot-glass {
+    background: rgba(30,41,59,0.95);
+    border: 1px solid rgba(51,65,85,0.18);
+  }
+} 
