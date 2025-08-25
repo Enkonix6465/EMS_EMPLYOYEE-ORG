@@ -75,12 +75,32 @@ const EmployeePayslipViewer = () => {
       const payslipDocId = `${employeeId}_${selectedMonth}`;
       console.log("🔎 Looking for payslip document:", payslipDocId);
 
+      // First try direct document lookup
       const docRef = doc(db, "salaryDetails", payslipDocId);
       const snap = await getDoc(docRef);
 
       if (snap.exists()) {
         const data = snap.data() as PayslipData;
-        console.log("✅ Payslip found successfully:", data);
+        console.log("✅ Payslip found successfully by ID:", data);
+        setPayslipData(data);
+        toast.success("Payslip loaded successfully!");
+        return;
+      }
+
+      // If not found by ID, try querying by employeeId and month fields
+      console.log("🔎 Trying to find payslip by query...");
+      const salaryDetailsRef = collection(db, "salaryDetails");
+      const q = query(
+        salaryDetailsRef, 
+        where("employeeId", "==", employeeId),
+        where("month", "==", selectedMonth)
+      );
+      const querySnap = await getDocs(q);
+
+      if (!querySnap.empty) {
+        // Use the first matching document
+        const data = querySnap.docs[0].data() as PayslipData;
+        console.log("✅ Payslip found successfully by query:", data);
         setPayslipData(data);
         toast.success("Payslip loaded successfully!");
       } else {
@@ -102,15 +122,42 @@ const EmployeePayslipViewer = () => {
 
       // Get all salary details documents for this employee
       const salaryDetailsRef = collection(db, "salaryDetails");
-      const q = query(salaryDetailsRef, where("employeeId", "==", employeeId));
-      const snapshot = await getDocs(q);
-
-      const months = snapshot.docs.map(doc => {
+      
+      // First try with employeeId field
+      const q1 = query(salaryDetailsRef, where("employeeId", "==", employeeId));
+      const snapshot1 = await getDocs(q1);
+      
+      // Also try with document ID pattern matching
+      const q2 = query(salaryDetailsRef);
+      const snapshot2 = await getDocs(q2);
+      
+      // Combine results from both queries
+      const allDocs = [...snapshot1.docs];
+      
+      // Add docs that match the pattern employeeId_YYYY-MM but weren't in the first query
+      snapshot2.docs.forEach(doc => {
+        const docId = doc.id;
+        if (docId.startsWith(`${employeeId}_`) && !allDocs.some(d => d.id === docId)) {
+          allDocs.push(doc);
+        }
+      });
+      
+      const months = allDocs.map(doc => {
         const data = doc.data();
-        return data.month;
-      }).filter((month, index, array) =>
-        month && array.indexOf(month) === index // Remove duplicates
-      ).sort().reverse(); // Sort latest first
+        // If month field exists in the document, use it
+        if (data.month) {
+          return data.month;
+        }
+        // Otherwise try to extract from document ID (format: employeeId_YYYY-MM)
+        const docId = doc.id;
+        const parts = docId.split('_');
+        if (parts.length === 2 && parts[1].match(/^\d{4}-\d{2}$/)) {
+          return parts[1];
+        }
+        return null;
+      }).filter(Boolean) // Remove null/undefined values
+        .filter((month, index, array) => array.indexOf(month) === index) // Remove duplicates
+        .sort().reverse(); // Sort latest first
 
       console.log("✅ Found payslips for months:", months);
       setAvailablePayslips(months);
@@ -292,12 +339,7 @@ const EmployeePayslipViewer = () => {
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-bold text-gray-800 dark:text-white">Payslip Preview</h3>
             <div className="flex gap-2">
-              <button
-                className="bg-green-600 hover:bg-green-700 transition-all duration-300 text-white px-4 py-2 rounded-lg font-semibold flex items-center gap-2"
-                onClick={downloadPDF}
-              >
-                📥 Download PDF
-              </button>
+              
             </div>
           </div>
 
@@ -373,9 +415,9 @@ const EmployeePayslipViewer = () => {
                   {[
                     ["Name", payslipData.name],
                     ["Bank A/c No.", payslipData.accountNumber],
-                    ["LOP Days", payslipData.absentDays],
+                    ["LOP Days", payslipData.absentDays > 0 ? payslipData.absentDays - 1 : 0],
                     ["Scheduled Work Days", payslipData.totalWorkingDays],
-                    ["Worked Days", payslipData.presentDays],
+                    ["Worked Days", payslipData.presentDays + 1],
                     ["Designation", payslipData.department || "-"],
                   ].map(([label, value]) => (
                     <div className="grid grid-cols-2 border-b border-gray-200 dark:border-gray-600" key={label}>
@@ -401,31 +443,31 @@ const EmployeePayslipViewer = () => {
                     <div className="grid grid-cols-2 p-3 text-gray-800 dark:text-white">
                       <div className="font-medium">BASIC</div>
                       <div className="text-right font-semibold">
-                        ₹{Math.round(payslipData.adjusted * 0.4).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.gross ? Math.round(payslipData.gross * 0.7) : 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 p-3 text-gray-800 dark:text-white">
                       <div className="font-medium">HOUSE RENT ALLOWANCE</div>
                       <div className="text-right font-semibold">
-                        ₹{Math.round(payslipData.adjusted * 0.3).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.gross ? Math.round(payslipData.gross * 0.2) : 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 p-3 text-gray-800 dark:text-white">
                       <div className="font-medium">SPECIAL ALLOWANCE</div>
                       <div className="text-right font-semibold">
-                        ₹{Math.round(payslipData.adjusted * 0.2).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.gross ? Math.round(payslipData.gross * 0.1) : 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 p-3 text-gray-800 dark:text-white">
                       <div className="font-medium">HOT SKILL BONUS</div>
                       <div className="text-right font-semibold">
-                        ₹{Math.round(payslipData.adjusted * 0.1).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.gross ? Math.round(payslipData.gross * 0.0) : 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 p-3 bg-green-50 dark:bg-green-900 font-bold text-gray-800 dark:text-white">
                       <div>GROSS EARNING</div>
                       <div className="text-right text-green-700 dark:text-green-300">
-                        ₹{payslipData.adjusted.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.gross || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                   </div>
@@ -440,33 +482,33 @@ const EmployeePayslipViewer = () => {
                     <div className="grid grid-cols-2 p-3 text-gray-800 dark:text-white">
                       <div className="font-medium">PROVIDENT FUND</div>
                       <div className="text-right font-semibold">
-                        ₹{payslipData.pf.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.pf || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 p-3 text-gray-800 dark:text-white">
                       <div className="font-medium">PROFESSIONAL TAX</div>
                       <div className="text-right font-semibold">
-                        ₹{payslipData.proTax.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.proTax || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                     <div className="grid grid-cols-2 p-3 text-gray-800 dark:text-white">
                       <div className="font-medium">INCOME TAX</div>
                       <div className="text-right font-semibold">
-                        ₹{payslipData.incomeTax.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.incomeTax || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
-                    {payslipData.penalty > 0 && (
+                    {payslipData?.penalty > 0 && (
                       <div className="grid grid-cols-2 p-3 text-gray-800 dark:text-white">
                         <div className="font-medium">PENALTY</div>
                         <div className="text-right font-semibold">
-                          ₹{payslipData.penalty.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                          ₹{(payslipData?.penalty || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </div>
                       </div>
                     )}
                     <div className="grid grid-cols-2 p-3 bg-red-50 dark:bg-red-900 font-bold text-gray-800 dark:text-white">
                       <div>GROSS DEDUCTIONS</div>
                       <div className="text-right text-red-700 dark:text-red-300">
-                        ₹{payslipData.deductions.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                        ₹{(payslipData?.deductions || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                       </div>
                     </div>
                   </div>
@@ -476,12 +518,12 @@ const EmployeePayslipViewer = () => {
               {/* Net Pay */}
               <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 text-center">
                 <div className="text-2xl font-bold">
-                  NET PAY ₹{payslipData.net.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
+                  NET PAY ₹{(payslipData?.net || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                 </div>
               </div>
 
               {/* Notes */}
-              {payslipData.notes && (
+              {payslipData?.notes && (
                 <div className="bg-yellow-50 dark:bg-yellow-900 p-4 border-b-2 border-gray-300 dark:border-gray-600">
                   <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-2">Notes:</h4>
                   <p className="text-yellow-700 dark:text-yellow-300 text-sm">{payslipData.notes}</p>
