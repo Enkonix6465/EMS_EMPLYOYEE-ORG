@@ -8,6 +8,8 @@ import toast from "react-hot-toast";
 
 // Type definitions
 interface PayslipData {
+  joiningDate: string;
+  location: string;
   gross: number;
   adjusted: number;
   extraPay: number;
@@ -57,14 +59,16 @@ const EmployeePayslipViewer = () => {
     try {
       console.log("🔍 Fetching payslip for user:", uid, "month:", selectedMonth);
 
-      // First, get the user's employee ID from their profile
+      // First, get the user's employee data from their profile
       const userDocRef = doc(db, "employees", uid);
       const userSnap = await getDoc(userDocRef);
 
-      let employeeId = uid; // fallback to uid
+      let employeeId = uid;
+      let employeeData: any = {};
+
       if (userSnap.exists()) {
-        const userData = userSnap.data();
-        employeeId = userData.employeeId || uid;
+        employeeData = userSnap.data();
+        employeeId = employeeData.employeeId || uid;
         setUserEmployeeId(employeeId);
         console.log("✅ Found employee data, employeeId:", employeeId);
       } else {
@@ -79,29 +83,37 @@ const EmployeePayslipViewer = () => {
       const docRef = doc(db, "salaryDetails", payslipDocId);
       const snap = await getDoc(docRef);
 
+      let payslipDataFound: PayslipData | null = null;
+
       if (snap.exists()) {
-        const data = snap.data() as PayslipData;
-        console.log("✅ Payslip found successfully by ID:", data);
-        setPayslipData(data);
-        toast.success("Payslip loaded successfully!");
-        return;
+        payslipDataFound = snap.data() as PayslipData;
+        console.log("✅ Payslip found successfully by ID:", payslipDataFound);
+      } else {
+        // If not found by ID, try querying by employeeId and month fields
+        console.log("🔎 Trying to find payslip by query...");
+        const salaryDetailsRef = collection(db, "salaryDetails");
+        const q = query(
+          salaryDetailsRef, 
+          where("employeeId", "==", employeeId),
+          where("month", "==", selectedMonth)
+        );
+        const querySnap = await getDocs(q);
+
+        if (!querySnap.empty) {
+          // Use the first matching document
+          payslipDataFound = querySnap.docs[0].data() as PayslipData;
+          console.log("✅ Payslip found successfully by query:", payslipDataFound);
+        }
       }
 
-      // If not found by ID, try querying by employeeId and month fields
-      console.log("🔎 Trying to find payslip by query...");
-      const salaryDetailsRef = collection(db, "salaryDetails");
-      const q = query(
-        salaryDetailsRef, 
-        where("employeeId", "==", employeeId),
-        where("month", "==", selectedMonth)
-      );
-      const querySnap = await getDocs(q);
-
-      if (!querySnap.empty) {
-        // Use the first matching document
-        const data = querySnap.docs[0].data() as PayslipData;
-        console.log("✅ Payslip found successfully by query:", data);
-        setPayslipData(data);
+      if (payslipDataFound) {
+        // 🔧 FIXED: Enrich payslip data with missing fields from employee profile
+        payslipDataFound.joiningDate = payslipDataFound.joiningDate || employeeData.joiningDate || employeeData.dateOfJoining || "-";
+        payslipDataFound.location = payslipDataFound.location || employeeData.location || "-";
+        payslipDataFound.name = payslipDataFound.name || employeeData.name || employeeData.displayName || "-";
+        payslipDataFound.department = payslipDataFound.department || employeeData.department || "-";
+        
+        setPayslipData(payslipDataFound);
         toast.success("Payslip loaded successfully!");
       } else {
         console.log("❌ No payslip document found for:", payslipDocId);
@@ -390,15 +402,15 @@ const EmployeePayslipViewer = () => {
                 </h2>
               </div>
 
-              {/* Employee Details Grid */}
+              {/* Employee Details Grid - FIXED */}
               <div className="grid grid-cols-1 md:grid-cols-2 border-b-2 border-gray-300 dark:border-gray-600">
                 <div className="border-r-2 border-gray-300 dark:border-gray-600">
                   {[
                     ["Personnel No.", payslipData.employeeId],
                     ["Bank", payslipData.bankName],
-                    ["DOJ", "-"],
+                    ["DOJ", payslipData.joiningDate], // ✅ FIXED: Now uses correct field
                     ["PF No.", payslipData.uan || "-"],
-                    ["Location", "-"],
+                    ["Location", payslipData.location || "-"], // ✅ FIXED: Will show location
                     ["Department", payslipData.department || "-"],
                   ].map(([label, value]) => (
                     <div className="grid grid-cols-2 border-b border-gray-200 dark:border-gray-600" key={label}>
