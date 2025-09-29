@@ -9,7 +9,9 @@ export default function HighlightsBar({ highlights }: { highlights: Highlight[] 
         <div
           key={i}
           className={
-            'min-w-[220px] max-w-xs flex-shrink-0 rounded-2xl shadow-lg p-4 flex items-center gap-3 bg-gradient-to-br ' +
+            `min-w-[220px] ${
+              h.type === 'birthday' ? 'max-w-[400px]' : 'max-w-xs'
+            } flex-shrink-0 rounded-2xl shadow-lg p-4 flex items-center gap-3 bg-gradient-to-br ` +
             (h.type === 'holiday'
               ? 'from-yellow-100 to-yellow-300 border-l-4 border-yellow-400'
               : h.type === 'event'
@@ -19,10 +21,12 @@ export default function HighlightsBar({ highlights }: { highlights: Highlight[] 
         >
           <div className="flex flex-col items-center justify-center mr-2">
             <span className="text-3xl mb-1">{h.icon}</span>
-            <span className="text-xs font-semibold text-gray-600">{h.date.slice(5)}</span>
+            <span className="text-xs font-semibold text-gray-600">
+              {h.date.slice(5)}
+            </span>
           </div>
           <div className="flex-1">
-            <div className="font-bold text-base text-gray-800 truncate">
+            <div className={`font-bold text-base text-gray-800 ${h.type === 'birthday' ? 'break-words' : 'truncate'}`}>
               {h.type === 'birthday' ? `Birthday: ${h.title}` : h.title}
             </div>
             {h.description && (
@@ -40,4 +44,4 @@ export default function HighlightsBar({ highlights }: { highlights: Highlight[] 
       ))}
     </div>
   );
-} 
+}
