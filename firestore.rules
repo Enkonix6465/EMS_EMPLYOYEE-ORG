@@ -1,0 +1,246 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function callerRole() {
+      return
+        exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          ? get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role
+          : (exists(/databases/$(database)/documents/employees/$(request.auth.uid))
+              ? get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role
+              : 'member');
+    }
+
+    function isSuperAdmin() {
+      return isSignedIn() && callerRole() == 'super_admin';
+    }
+
+    function hasAnyRole(roles) {
+      return isSignedIn() && (isSuperAdmin() || callerRole() in roles);
+    }
+
+    // ---- profile / role source of truth ----
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSelf(userId);
+      allow update: if isSelf(userId) || hasAnyRole(['admin', 'hr']);
+      allow delete: if hasAnyRole(['admin']);
+    }
+    match /employees/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isSelf(userId);
+      allow update: if isSelf(userId) || hasAnyRole(['admin', 'hr']);
+      allow delete: if hasAnyRole(['admin']);
+    }
+
+    // ---- session control (self only) ----
+    match /activeSessions/{userId} {
+      allow read, write: if isSelf(userId);
+    }
+    match /loginLogs/{logId} {
+      allow create: if isSignedIn();
+      allow read: if hasAnyRole(['admin', 'hr']);
+      allow update, delete: if false;
+    }
+        match /loginLogs/{userId}/entries/{entryId} {
+      allow create: if isSelf(userId);
+      allow read: if isSelf(userId) || hasAnyRole(['admin', 'hr']);
+      allow update, delete: if false;
+    }
+
+    // ---- projects / tasks / teams ----
+    match /projects/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'project_manager']);
+    }
+    match /teams/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'project_manager', 'team_lead']);
+    }
+    match /tasks/{id} {
+      allow read: if isSignedIn();
+      allow create: if hasAnyRole(['admin', 'project_manager', 'team_lead']);
+      allow update: if isSignedIn() &&
+        (hasAnyRole(['admin', 'project_manager', 'team_lead']) ||
+         resource.data.assigned_to == request.auth.uid);
+      allow delete: if hasAnyRole(['admin', 'project_manager']);
+    }
+
+    // ---- attendance (employee-self + admin/hr only; keyed off doc ID
+    //      because the ownership FIELD name is inconsistently written
+    //      as "userId" in some files and "user_id" in others) ----
+    match /attendance/{id} {
+      allow read, write: if isSignedIn() &&
+        (id.matches(request.auth.uid + '_.*') || hasAnyRole(['admin', 'hr']));
+    }
+    match /attendanceSummary/{id} {
+      allow read, write: if isSignedIn() &&
+        (id.matches(request.auth.uid + '_.*') || hasAnyRole(['admin', 'hr']));
+    }
+
+    // ---- calendar ----
+    match /calendarDays/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+    match /customEvents/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+
+    // ---- leave (requires the LeaveApplicationPage.tsx fix above) ----
+    match /leaveManage/{id} {
+      allow read: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || hasAnyRole(['admin', 'hr', 'team_lead']));
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn() &&
+        (resource.data.userId == request.auth.uid || hasAnyRole(['admin', 'hr', 'team_lead']));
+      allow delete: if hasAnyRole(['admin', 'hr']);
+    }
+    match /leaveHistory/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr', 'team_lead']);
+    }
+    match /leaveSummary/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+
+    // ---- payroll (sensitive: self + admin/hr only) ----
+    match /salaryDetails/{id} {
+      allow read: if isSelf(id) || hasAnyRole(['admin', 'hr']);
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+
+    // ---- complaints / bug reports ----
+    match /complaints/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if hasAnyRole(['admin', 'hr']);
+    }
+    match /bugReports/{id} {
+      allow read: if isSignedIn();
+      allow create: if isSignedIn();
+      allow update, delete: if hasAnyRole(['admin']);
+    }
+
+    // ---- chat ----
+    // NOTE: globalChats/privateChats/groupChats hold the actual messages
+    // (found while auditing groupChatsMeta) and have NOT been analyzed
+    // to the same depth as the 8 requested collections. This is a
+    // stopgap so chat doesn't break outright — revisit later.
+    match /groupChatsMeta/{id} {
+      allow read: if isSignedIn() && request.auth.uid in resource.data.members;
+      allow write: if false;
+    }
+    match /globalChats/{chatId}/messages/{msgId} {
+      allow read, write: if isSignedIn();
+    }
+    match /privateChats/{chatId}/messages/{msgId} {
+      allow read, write: if isSignedIn();
+    }
+    match /groupChats/{chatId}/messages/{msgId} {
+      allow read, write: if isSignedIn();
+    }
+
+    // ---- org chart / polls ----
+    match /orgChart/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+    match /polls/{id} {
+      allow read: if isSignedIn();
+      allow create, delete: if hasAnyRole(['admin', 'hr']);
+      allow update: if isSignedIn();
+    }
+
+    // ---- career development ----
+    match /skills/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+    match /courses/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+    match /certifications/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+    match /career_paths/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+    match /user_skills/{id} {
+      allow read: if isSignedIn() &&
+        (resource.data.user_id == request.auth.uid || hasAnyRole(['admin', 'hr']));
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isSignedIn() &&
+        (resource.data.user_id == request.auth.uid || hasAnyRole(['admin', 'hr']));
+    }
+    match /user_career_goals/{id} {
+      allow read: if isSignedIn() &&
+        (resource.data.user_id == request.auth.uid || hasAnyRole(['admin', 'hr']));
+      allow create: if isSignedIn() && request.resource.data.user_id == request.auth.uid;
+      allow update, delete: if isSignedIn() &&
+        (resource.data.user_id == request.auth.uid || hasAnyRole(['admin', 'hr']));
+    }
+    match /learning_recommendations/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+
+    // ---- presence ----
+    match /onlineUsers/{id} {
+      allow read: if isSignedIn();
+      allow write: if false;
+    }
+    match /activeUsers/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isSelf(userId);
+    }
+
+    // ---- shift / geo / office config ----
+    match /geoAssignments/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+    match /shiftAssignments/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+      match /geoAssignments/{userId}/dates/{date} {
+      allow read: if isSelf(userId) || hasAnyRole(['admin', 'hr']);
+      allow write: if hasAnyRole(['admin', 'hr']);
+    }
+
+match /shiftAssignments/{userId}/dates/{date} {
+  allow read: if isSelf(userId) || hasAnyRole(['admin', 'hr']);
+  allow write: if hasAnyRole(['admin', 'hr']);
+}
+    match /officeNetwork/{id} {
+      allow read: if isSignedIn();
+      allow write: if hasAnyRole(['admin']);
+    }
+
+    // ---- audit log (append-only) ----
+    match /activity_logs/{id} {
+      allow read: if hasAnyRole(['admin']);
+      allow create: if isSignedIn();
+      allow update, delete: if false;
+    }
+
+    // default: deny anything not explicitly listed above
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

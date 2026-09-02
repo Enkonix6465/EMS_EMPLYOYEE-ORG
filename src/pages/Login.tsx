@@ -140,7 +140,7 @@ function Login() {
 
   const BackgroundSVG = () => (
     <svg className="absolute inset-0 w-full h-full" style={{ zIndex: 0 }} xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-      <defs>
+      <defs>F
         <linearGradient id="bg-gradient" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.18" />
           <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.12" />

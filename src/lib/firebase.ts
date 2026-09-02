@@ -19,13 +19,13 @@ import {
 } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBeEVsdTxGTg3MUwZPhYxBzQL7u1MYRF0k",
-  authDomain: "enkonix-6dd6c.firebaseapp.com",
-  projectId: "enkonix-6dd6c",
-  storageBucket: "enkonix-6dd6c.firebasestorage.app",
-  messagingSenderId: "405826936322",
-  appId: "1:405826936322:web:44da022c7dded72408511b",
-  measurementId: "G-5M5NXY6MTL"
+  apiKey: "AIzaSyCKxpS3N_UUV4eD_lh0YqWsVS1sCgl2UIc",
+  authDomain: "ems-enkonix-09-2026.firebaseapp.com",
+  projectId: "ems-enkonix-09-2026",
+  storageBucket: "ems-enkonix-09-2026.firebasestorage.app",
+  messagingSenderId: "887188090335",
+  appId: "1:887188090335:web:70f1077607c89a48c9e86a",
+  measurementId: "G-5DTEXBKSPF"
 };
 const app = initializeApp(firebaseConfig);
 export const analytics = getAnalytics(app);

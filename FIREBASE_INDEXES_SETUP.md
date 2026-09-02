@@ -9,13 +9,13 @@ Your application is currently experiencing Firebase index errors. You need to cr
 **Click these links to create the indexes directly in Firebase Console:**
 
 1. **Tasks: assigned_to + created_at + __name__**
-   - Link: https://console.firebase.google.com/v1/r/project/enkonix-6dd6c/firestore/indexes?create_composite=Cktwcm9qZWN0cy9lbmtvbml4LTZkZDZjL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy90YXNrcy9pbmRleGVzL18QARoPCgthc3NpZ25lZF90bxABGg4KCmNyZWF0ZWRfYXQQAhoMCghfX25hbWVfXxAC
+   - Link: https://console.firebase.google.com/v1/r/project/ems-enkonix-09-2026/firestore/indexes?create_composite=Cktwcm9qZWN0cy9lbmtvbml4LTZkZDZjL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy90YXNrcy9pbmRleGVzL18QARoPCgthc3NpZ25lZF90bxABGg4KCmNyZWF0ZWRfYXQQAhoMCghfX25hbWVfXxAC
 
 2. **Tasks: assigned_to + status + __name__** 
-   - Link: https://console.firebase.google.com/v1/r/project/enkonix-6dd6c/firestore/indexes?create_composite=Cktwcm9qZWN0cy9lbmtvbml4LTZkZDZjL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy90YXNrcy9pbmRleGVzL18QARoPCgthc3NpZ25lZF90bxABGgoKBnN0YXR1cxABGgwKCF9fbmFtZV9fEAE
+   - Link: https://console.firebase.google.com/v1/r/project/ems-enkonix-09-2026/firestore/indexes?create_composite=Cktwcm9qZWN0cy9lbmtvbml4LTZkZDZjL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy90YXNrcy9pbmRleGVzL18QARoPCgthc3NpZ25lZF90bxABGgoKBnN0YXR1cxABGgwKCF9fbmFtZV9fEAE
 
 3. **Attendance: userId + date + __name__**
-   - Link: https://console.firebase.google.com/v1/r/project/enkonix-6dd6c/firestore/indexes?create_composite=ClBwcm9qZWN0cy9lbmtvbml4LTZkZDZjL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9hdHRlbmRhbmNlL2luZGV4ZXMvXxABGgoKBnVzZXJJZBABGggKBGRhdGUQAhoMCghfX25hbWVfXxAC
+   - Link: https://console.firebase.google.com/v1/r/project/ems-enkonix-09-2026/firestore/indexes?create_composite=ClBwcm9qZWN0cy9lbmtvbml4LTZkZDZjL2RhdGFiYXNlcy8oZGVmYXVsdCkvY29sbGVjdGlvbkdyb3Vwcy9hdHRlbmRhbmNlL2luZGV4ZXMvXxABGgoKBnVzZXJJZBABGggKBGRhdGUQAhoMCghfX25hbWVfXxAC
 
 ## 🔧 Required Indexes for AI Features
 
@@ -79,7 +79,7 @@ Your application is currently experiencing Firebase index errors. You need to cr
 ### Method 1: Using Firebase Console (Recommended)
 
 1. Go to [Firebase Console](https://console.firebase.google.com)
-2. Select your project: **enkonix-6dd6c**
+2. Select your project: **ems-enkonix-09-2026**
 3. Navigate to **Firestore Database** → **Indexes** tab
 4. Click **Create Index**
 5. For each index above:

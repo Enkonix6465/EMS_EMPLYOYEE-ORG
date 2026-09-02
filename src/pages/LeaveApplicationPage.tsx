@@ -10,6 +10,8 @@ import {
   collection,
   getDoc,
   updateDoc,
+  query,
+  where,
 } from "firebase/firestore";
 import { onAuthStateChanged } from "firebase/auth";
 
@@ -36,7 +38,7 @@ export default function AdvancedLeaveApplication() {
     const unsub = onAuthStateChanged(auth, async (authUser) => {
       if (authUser) {
         setUser(authUser);
-        const ref = collection(db, "leaveManage");
+        const ref = query(collection(db, "leaveManage"), where("userId", "==", authUser.uid));
         onSnapshot(ref, (snapshot) => {
           const map: { [key: string]: LeaveRecord } = {};
           snapshot.docs.forEach((doc) => {
