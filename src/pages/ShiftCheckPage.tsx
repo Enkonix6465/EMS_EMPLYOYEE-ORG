@@ -71,20 +71,28 @@ const ShiftCheckPage = () => {
   // Always show the fact on page load and during countdown
 
   // Fetch current server time from timeapi.io
-  const fetchServerTime = async () => {
+    // Fetch current server time from timeapi.io (5s timeout, falls back to local time)
+    const fetchServerTime = async () => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
-      const res = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata");
+      const res = await fetch(
+        "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata",
+        { signal: controller.signal }
+      );
       if (!res.ok) throw new Error("Failed to fetch time");
       const data = await res.json();
-      // Parse time as HH:MM:SS
       const pad = (n: number) => n.toString().padStart(2, "0");
       return `${pad(data.hour)}:${pad(data.minute)}:${pad(data.seconds)}`;
-    } catch (error) {
-      console.error("❌ Failed to fetch server time, using local time:", error);
-      // Fallback: use local system time
+    } catch (error: any) {
+      if (error?.name !== "AbortError") {
+        console.error("❌ Failed to fetch server time, using local time:", error);
+      }
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, "0");
       return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
@@ -117,7 +125,24 @@ const ShiftCheckPage = () => {
       setCurrentTime(localTime);
       
       // 2. Fetch server time in parallel
-      const serverTimeRes = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata");
+            // 2. Fetch server time, with a timeout + fallback so this can never hang forever
+      let data: { hour: number; minute: number; seconds: number };
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        const serverTimeRes = await fetch(
+          "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata",
+          { signal: controller.signal }
+        );
+        clearTimeout(timeoutId);
+        if (!serverTimeRes.ok) throw new Error(`HTTP error! status: ${serverTimeRes.status}`);
+        data = await serverTimeRes.json();
+      } catch (error) {
+        console.error("❌ Failed to fetch server time in checkShift, using local time:", error);
+        const now = new Date();
+        data = { hour: now.getHours(), minute: now.getMinutes(), seconds: now.getSeconds() };
+      }
+      const nowSec = data.hour * 3600 + data.minute * 60 + data.seconds;
 
       if (!shiftSnap.exists()) {
         setStatus("none");
@@ -133,8 +158,6 @@ const ShiftCheckPage = () => {
       const { startTime, endTime } = shiftSnap.data();
       setShiftTime({ startTime, endTime });
 
-      const data = await serverTimeRes.json();
-      const nowSec = data.hour * 3600 + data.minute * 60 + data.seconds;
 
       const [sh, sm, ss] = startTime.split(":").map(Number);
       const [eh, em, es] = endTime.split(":").map(Number);

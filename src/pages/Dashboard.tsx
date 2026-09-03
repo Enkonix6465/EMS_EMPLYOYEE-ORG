@@ -55,51 +55,74 @@ import AIChatbot from '../components/AIChatbot';
 // --- THEME COLORS ---
 // Main accent: blue (#2563eb), secondary: teal (#14b8a6), highlight: gold (#fbbf24)
 // Use these for backgrounds, buttons, stats, and highlights.
+// --- Shared server-time sync (sync once, tick locally) ---
+// Instead of hitting timeapi.io on every render/interval tick, we sync once,
+// remember the offset between server time and this device's clock, and then
+// compute "current server time" locally from Date.now() + that offset.
+// Only re-hits the network if the cached offset is missing or older than 60s.
+const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000; // Asia/Kolkata is fixed UTC+5:30, no DST
 
-const getCurrentDate = async (): Promise<string> => {
-  const response = await fetch(
-    "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata"
-  );
-  const data = await response.json();
+let timeSyncOffsetMs: number = 0; // serverEpochMs - Date.now(); 0 = "use local device time"
+let lastSyncAtMs = 0;
+const TIME_RESYNC_INTERVAL_MS = 60000; // re-sync at most once a minute
 
-  const iso = data.dateTime; // e.g., "2025-07-18T09:05:23"
-  const [date] = iso.split("T"); // Extract date part only
-  console.log("📅 Server Date:", date);
-  return date;
+const pad2 = (n: number) => String(n).padStart(2, "0");
+
+// Converts an epoch ms value into the Asia/Kolkata wall-clock date/time strings,
+// in the same "YYYY-MM-DD" / "HH:MM:SS" shape the old code produced.
+const epochToKolkataParts = (epochMs: number): { date: string; time: string } => {
+  const t = new Date(epochMs + IST_OFFSET_MS);
+  const date = `${t.getUTCFullYear()}-${pad2(t.getUTCMonth() + 1)}-${pad2(t.getUTCDate())}`;
+  const time = `${pad2(t.getUTCHours())}:${pad2(t.getUTCMinutes())}:${pad2(t.getUTCSeconds())}`;
+  return { date, time };
 };
 
-// adjust path if needed
-
-// Utility functions
-// ✅ Use server time from Firestore
-const getServerDateTime = async (): Promise<{ date: string; time: string }> => {
+// The actual network fetch. Never throws — on any failure (including an
+// intentional timeout abort) it just keeps the previous offset (or 0) and
+// backs off until the next resync window, so a down/slow API is never
+// retried more than once every TIME_RESYNC_INTERVAL_MS.
+const syncServerTime = async (): Promise<void> => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
   try {
-    // Fetch time from timeapi.io for Asia/Kolkata with timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-    
-  const response = await fetch(
+    const response = await fetch(
       "https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata",
       { signal: controller.signal }
-  );
-    
-    clearTimeout(timeoutId);
-    
+    );
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
-  const data = await response.json();
 
-  const iso = data.dateTime; // e.g., "2025-07-17T18:30:00"
-  const [date, fullTime] = iso.split("T");
-  const time = fullTime.split(".")[0]; // Keep format: HH:MM:SS
-
-      return { date, time };
-  } catch (error) {
-    console.error("Failed to get server time:", error);
-    throw error; // Re-throw to let caller handle fallback
+    const data = await response.json();
+    const iso: string = data.dateTime;
+    const serverEpochMs = new Date(`${iso}Z`).getTime() - IST_OFFSET_MS;
+    timeSyncOffsetMs = serverEpochMs - Date.now();
+  } catch (error: any) {
+    if (error?.name !== "AbortError") {
+      console.error("Failed to sync server time, falling back to local time:", error);
+    }
+    // Otherwise: silent. Either way, keep the last known offset (or 0)
+    // rather than throwing.
+  } finally {
+    clearTimeout(timeoutId);
+    lastSyncAtMs = Date.now(); // back off regardless of success/failure
   }
+};
+
+// Always resolves to a valid { date, time } pair, never throws. Only hits
+// the network when the cached offset is missing or older than 60s —
+// otherwise it's a pure local computation from Date.now() + the last offset.
+const getServerDateTime = async (): Promise<{ date: string; time: string }> => {
+  if (Date.now() - lastSyncAtMs > TIME_RESYNC_INTERVAL_MS) {
+    await syncServerTime();
+  }
+  return epochToKolkataParts(Date.now() + timeSyncOffsetMs);
+};
+
+const getCurrentDate = async (): Promise<string> => {
+  const { date } = await getServerDateTime();
+  console.log("📅 Server Date:", date);
+  return date;
 };
 
 const convertTo24HourFormat = (time12h: string): string => {
@@ -650,19 +673,19 @@ function LiveDateTime() {
   const [now, setNow] = useState<{date: string, time: string} | null>(null);
   useEffect(() => {
     let interval: NodeJS.Timeout;
-    const fetchServerTime = async () => {
-      try {
-        const res = await fetch("https://timeapi.io/api/Time/current/zone?timeZone=Asia/Kolkata");
-        if (!res.ok) throw new Error("Failed to fetch time");
-        const data = await res.json();
-        setNow({ date: data.date, time: `${String(data.hour).padStart(2, "0")}:${String(data.minute).padStart(2, "0")}:${String(data.seconds).padStart(2, "0")}` });
-      } catch {
-        setNow(null);
-      }
+    let cancelled = false;
+
+    const tick = async () => {
+      const dt = await getServerDateTime(); // never throws; hits the network only ~once/60s
+      if (!cancelled) setNow(dt);
     };
-    fetchServerTime();
-    interval = setInterval(fetchServerTime, 1000);
-    return () => clearInterval(interval);
+
+    tick();
+    interval = setInterval(tick, 1000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
   }, []);
   return (
     <span className="text-white/80 text-sm font-mono tracking-widest">
@@ -2632,8 +2655,7 @@ export default function EmployeeSelfProfile() {
 const calculateMonthTotalHours = async (userId: string, monthKey: string) => {
   let totalSec = 0;
   // Fetch all attendance records for the month
-  const attQuery = query(collection(db, "attendance"),);
-  const attSnap = await getDocs(attQuery);
+  const attQuery = query(collection(db, "attendance"), where("userId", "==", userId));  const attSnap = await getDocs(attQuery);
   attSnap.forEach(docSnap => {
     const data = docSnap.data();
     if (data.userId === userId && data.date && data.date.startsWith(monthKey)) {
