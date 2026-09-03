@@ -46,7 +46,7 @@ service cloud.firestore {
       allow read, write: if isSelf(userId);
     }
     match /loginLogs/{logId} {
-      allow create: if isSignedIn();
+      allow create: if isSignedI n();
       allow read: if hasAnyRole(['admin', 'hr']);
       allow update, delete: if false;
     }
