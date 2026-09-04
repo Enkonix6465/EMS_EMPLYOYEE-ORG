@@ -46,12 +46,18 @@ function getAiSuggestions({
 }
 
 // Fun fact generator for engagement
+
 const funFacts = [
   "Did you know? Taking a 5-minute walk can boost your creativity by 60%.",
   "Fact: People who plan their day in the morning are 30% more productive.",
   "Tip: Hydration helps you stay focused. Drink a glass of water now!",
   "Fun: Smiling at your colleagues can improve team morale.",
   "Quick tip: A tidy workspace can reduce stress and increase efficiency.",
+  "Tip: The 2-minute rule — if a task takes under 2 minutes, do it now instead of later.",
+  "Fact: Natural light exposure in the morning helps regulate your energy all day.",
+  "Tip: Batch similar small tasks together instead of switching context constantly.",
+  "Fun: A 20-second stretch break every hour can reduce fatigue significantly.",
+  "Quick tip: Write down your top 3 priorities before checking messages.",
 ];
 
 const getRandomFact = () => funFacts[Math.floor(Math.random() * funFacts.length)];
@@ -71,8 +77,8 @@ const ShiftCheckPage = () => {
   // Always show the fact on page load and during countdown
 
   // Fetch current server time from timeapi.io
-    // Fetch current server time from timeapi.io (5s timeout, falls back to local time)
-    const fetchServerTime = async () => {
+  // Fetch current server time from timeapi.io (5s timeout, falls back to local time)
+  const fetchServerTime = async () => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     try {
@@ -117,15 +123,15 @@ const ShiftCheckPage = () => {
       if (!shiftSnap.exists()) {
         shiftSnap = await getDoc(doc(db, "geoAssignments", user.uid, "dates", today));
       }
-      
+
       // 1. Show local time immediately
       const now = new Date();
       const pad = (n: number) => n.toString().padStart(2, "0");
       const localTime = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
       setCurrentTime(localTime);
-      
+
       // 2. Fetch server time in parallel
-            // 2. Fetch server time, with a timeout + fallback so this can never hang forever
+      // 2. Fetch server time, with a timeout + fallback so this can never hang forever
       let data: { hour: number; minute: number; seconds: number };
       try {
         const controller = new AbortController();
@@ -192,7 +198,7 @@ const ShiftCheckPage = () => {
       // Only allow access if within shift hours
       setStatus("valid");
       setMessage("✅ Access granted. Within shift hours.");
-        };
+    };
 
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) checkShift(user);
@@ -225,11 +231,11 @@ const ShiftCheckPage = () => {
     return () => clearInterval(timer);
   }, [status, navigate]);
 
-  // Optionally, rotate the fact every few seconds (optional, but not required by user)
-  // useEffect(() => {
-  //   const interval = setInterval(() => setFact(getRandomFact()), 8000);
-  //   return () => clearInterval(interval);
-  // }, []);
+  // Rotate the fun fact every 10 seconds
+  useEffect(() => {
+    const interval = setInterval(() => setFact(getRandomFact()), 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Loading spinner
   if (status === "checking")
@@ -295,20 +301,24 @@ const ShiftCheckPage = () => {
           </div>
         )}
 
-        {/* Motivational/Fun Quote - always visible, animated */}
-        <div className="mt-6 flex justify-center">
-          <div className="relative w-full">
-            <div className="animate-fade-in-up bg-gradient-to-r from-indigo-100 via-yellow-50 to-blue-100 border-l-4 border-indigo-400 p-4 rounded-xl shadow text-indigo-900 text-base font-semibold italic tracking-wide transition-all duration-500">
+        {/* Rotating Fun Fact */}
+        <div className="mt-6 space-y-3 text-left">
+         
+          <div className="relative">
+            <div
+              key={fact}
+              className="animate-fade-in-up bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-l-4 border-amber-400 p-4 rounded-xl shadow text-amber-900 text-sm font-semibold italic tracking-wide"
+            >
               <span role="img" aria-label="lightbulb" className="mr-2">💡</span>
               {fact}
-        </div>
+            </div>
             <style>{`
               @keyframes fade-in-up {
                 0% { opacity: 0; transform: translateY(20px); }
                 100% { opacity: 1; transform: translateY(0); }
               }
               .animate-fade-in-up {
-                animation: fade-in-up 1s cubic-bezier(.39,.575,.565,1) both;
+                animation: fade-in-up 0.6s cubic-bezier(.39,.575,.565,1) both;
               }
             `}</style>
           </div>
