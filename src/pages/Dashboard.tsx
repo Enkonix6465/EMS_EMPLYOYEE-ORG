@@ -14,6 +14,7 @@ import {
   query,
   limit,
   onSnapshot,
+  where,
 } from "firebase/firestore";
 import { PartyPopper, Brain, TrendingUp, AlertTriangle, Lightbulb, Target, Zap } from "lucide-react"; // Make sure to install lucide-react if not present
 import type { Dispatch, SetStateAction } from "react";
@@ -839,19 +840,21 @@ function useHolidays(year: number) {
 }
 
 // --- ONLINE USERS HOOK ---
+
 export function useOnlineUsers() {
   const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "onlineUsers", "current"), (snap) => {
-      if (snap.exists()) {
-        setOnlineUsers(snap.data().users || []);
-      }
+    const q = query(collection(db, "activeUsers"), where("status", "==", "online"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const names = snapshot.docs
+        .map((d) => d.data().name)
+        .filter((name): name is string => Boolean(name));
+      setOnlineUsers(names);
     });
     return () => unsub();
   }, []);
   return onlineUsers;
 }
-
 export default function EmployeeSelfProfile() {
   // All hooks at the very top, before any logic or return
   const [userEmail, setUserEmail] = useState("");
@@ -1748,7 +1751,24 @@ export default function EmployeeSelfProfile() {
         try {
           const profileSnap = await getDoc(doc(db, "employees", user.uid));
           if (profileSnap.exists()) {
-            setProfile({ ...profileSnap.data(), uid: user.uid }); // ✅ Inject uid for later use
+
+                        setProfile({ ...profileSnap.data(), uid: user.uid }); // ✅ Inject uid for later use
+
+            // Mark this user online for the "Online Users" widget
+            try {
+              await setDoc(
+                doc(db, "activeUsers", user.uid),
+                {
+                  name: profileSnap.data().name || user.email,
+                  status: "online",
+                  lastSeen: serverTimestamp(),
+                },
+                { merge: true }
+              );
+            } catch (presenceErr) {
+              console.error("Failed to mark user online:", presenceErr);
+            }
+
             await setupAttendance(user.uid, profileSnap.data().name);
 
             const { date } = await getServerDateTime();

@@ -74,21 +74,23 @@ service cloud.firestore {
       allow delete: if hasAnyRole(['admin', 'project_manager']);
     }
 
-        // ---- attendance (employee-self + admin/hr only; checked via the
-    //      "userId" field, since that's what the app's queries filter on —
-    //      an ID-pattern check can't be validated against a field-filtered
-    //      query by Firestore's rules engine) ----
-    match /attendance/{id} {
-      allow read: if isSignedIn() &&
+        // ---- attendance 
+
+     match /attendance/{id} {
+         allow read: if isSignedIn() &&
+        (id.matches(request.auth.uid + '_.*') ||
+         (resource != null && resource.data.userId == request.auth.uid) ||
+         hasAnyRole(['admin', 'hr']));
+         allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+          allow update: if isSignedIn() &&
         (resource.data.userId == request.auth.uid || hasAnyRole(['admin', 'hr']));
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn() &&
-        (resource.data.userId == request.auth.uid || hasAnyRole(['admin', 'hr']));
-      allow delete: if hasAnyRole(['admin', 'hr']);
+          allow delete: if hasAnyRole(['admin', 'hr']);
     }
     match /attendanceSummary/{id} {
       allow read: if isSignedIn() &&
-        (resource.data.userId == request.auth.uid || hasAnyRole(['admin', 'hr']));
+        (id.matches(request.auth.uid + '_.*') ||
+         (resource != null && resource.data.userId == request.auth.uid) ||
+         hasAnyRole(['admin', 'hr']));
       allow create, update: if isSignedIn() &&
         (request.resource.data.userId == request.auth.uid || hasAnyRole(['admin', 'hr']));
       allow delete: if hasAnyRole(['admin', 'hr']);
