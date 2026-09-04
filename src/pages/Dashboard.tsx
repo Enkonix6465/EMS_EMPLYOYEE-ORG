@@ -27,9 +27,9 @@ import { useCalendarEvents } from "../hooks/useCalendarEvents";
 import HighlightsBar from '../components/HighlightsBar';
 import { useHighlights } from '../hooks/useHighlights';
 import CareerInsights from '../components/CareerInsights';
-import { 
-  generateDashboardInsights, 
-  generateSmartNotifications, 
+import {
+  generateDashboardInsights,
+  generateSmartNotifications,
   calculateProductivityScore,
   generatePersonalizedRecommendations,
   predictAttendancePatterns,
@@ -220,11 +220,10 @@ const getAddressFromCoords = async (
     const data = await res.json();
     const fullAddress =
       data.display_name ||
-      `${data.address.road || ""}, ${
-        data.address.city ||
-        data.address.town ||
-        data.address.village ||
-        ""
+      `${data.address.road || ""}, ${data.address.city ||
+      data.address.town ||
+      data.address.village ||
+      ""
       }, ${data.address.state || ""}, ${data.address.country || ""}`;
     return fullAddress.trim() || `Lat: ${lat.toFixed(6)}, Lng: ${lon.toFixed(6)}`;
   } catch (error) {
@@ -256,7 +255,7 @@ const getCurrentLocation = async (): Promise<{ lat: number; lng: number; address
           });
         } catch (err) {
           console.error("Reverse geocoding failed:", err);
-resolve({
+          resolve({
             lat: parseFloat(latVal),
             lng: parseFloat(lngVal),
             address: `Lat: ${latVal}, Lng: ${lngVal}`
@@ -370,8 +369,8 @@ function CalendarCreative({
           ◀
         </button>
         <h2 className="text-lg font-bold text-center text-blue-700 dark:text-blue-300">
-        📅 {year}-{String(month + 1).padStart(2, "0")}
-      </h2>
+          📅 {year}-{String(month + 1).padStart(2, "0")}
+        </h2>
         <button
           className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600"
           onClick={() => onMonthChange && onMonthChange(year, month + 1)}
@@ -429,9 +428,8 @@ function CalendarCreative({
             return (
               <button
                 key={di}
-                className={`rounded p-1 h-20 flex flex-col items-center justify-center ${bg} ${
-                  adminMode ? "hover:ring-2 hover:ring-blue-400" : ""
-                } ${extraClasses}`}
+                className={`rounded p-1 h-20 flex flex-col items-center justify-center ${bg} ${adminMode ? "hover:ring-2 hover:ring-blue-400" : ""
+                  } ${extraClasses}`}
                 title={title}
                 disabled={!adminMode || loading}
                 onClick={() =>
@@ -671,7 +669,7 @@ function LiveGreeting({ name = '' }) {
 
 // Live date/time component
 function LiveDateTime() {
-  const [now, setNow] = useState<{date: string, time: string} | null>(null);
+  const [now, setNow] = useState<{ date: string, time: string } | null>(null);
   useEffect(() => {
     let interval: NodeJS.Timeout;
     let cancelled = false;
@@ -906,7 +904,7 @@ export default function EmployeeSelfProfile() {
   const [shiftTimerId, setShiftTimerId] = useState<NodeJS.Timeout | null>(null);
   const [monthTotalHours, setMonthTotalHours] = useState<string>("0h 0m 0s");
   const [shiftDurationSec, setShiftDurationSec] = useState<number | null>(null);
-  
+
   // AI Features State
   const [aiInsights, setAiInsights] = useState<AIInsight[]>([]);
   const [productivityScore, setProductivityScore] = useState<number>(0);
@@ -914,13 +912,13 @@ export default function EmployeeSelfProfile() {
   const [attendancePrediction, setAttendancePrediction] = useState<AIPrediction | null>(null);
   const [smartNotifications, setSmartNotifications] = useState<AIInsight[]>([]);
   const [aiLoading, setAiLoading] = useState(true);
-  
+
   // Advanced AI Features State
   const [workloadAnalysis, setWorkloadAnalysis] = useState<any>(null);
   const [wellnessInsights, setWellnessInsights] = useState<AIInsight[]>([]);
   const [performancePrediction, setPerformancePrediction] = useState<AIPrediction | null>(null);
   const [learningSuggestions, setLearningSuggestions] = useState<SmartSuggestion[]>([]);
-  
+
   // Toast notification state
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'warning' | 'info' } | null>(null);
 
@@ -928,7 +926,7 @@ export default function EmployeeSelfProfile() {
   const fetchAIData = async (userId: string) => {
     try {
       setAiLoading(true);
-      
+
       // Fetch all AI insights and data in parallel
       const [
         insights,
@@ -951,7 +949,7 @@ export default function EmployeeSelfProfile() {
         predictPerformance(userId),
         generatePersonalizedRecommendations(userId) // Using this for learning suggestions
       ]);
-      
+
       setAiInsights(insights);
       setProductivityScore(score);
       setSmartRecommendations(recommendations);
@@ -961,7 +959,7 @@ export default function EmployeeSelfProfile() {
       setWellnessInsights(wellness);
       setPerformancePrediction(performance);
       setLearningSuggestions(learning);
-      
+
     } catch (error) {
       console.error('Error fetching AI data:', error);
       // Set default values if AI data fails
@@ -1022,28 +1020,41 @@ export default function EmployeeSelfProfile() {
   const setupAttendance = async (userId: string, name: string) => {
     try {
       const { date, time } = await getServerDateTime();
-      
+
       // Check if it's a new month and reset calculations if needed
       await checkAndResetMonthlyData(userId);
-      
+
       // Fetch shift duration for today
       const duration = await fetchShiftDuration(userId, date);
       setShiftDurationSec(duration);
-      
+
       // Try both collections for assignment
       let assignmentSnap = await getDoc(doc(db, "geoAssignments", userId, "dates", date));
       if (!assignmentSnap.exists()) {
         assignmentSnap = await getDoc(doc(db, "shiftAssignments", userId, "dates", date));
       }
       if (!assignmentSnap.exists()) {
-    }
-    if (!assignmentSnap.exists()) {
+      }
+      if (!assignmentSnap.exists()) {
         showToast("❌ Shift/location assignment not found for today. Please contact admin.", "error");
-      return;
-    }
+        return;
+      }
+      const assignment = assignmentSnap.data();
+      const { lat, lng, workFromHome } = assignment;
 
-    const assignment = assignmentSnap.data();
-    const { lat, lng, workFromHome } = assignment;
+      // Only run the interactive check-in flow (location/IP prompts, toasts,
+      // creating today's attendance session) once per user per day in this
+      // browser tab. Without this, it reruns every time Dashboard remounts —
+      // e.g. navigating to another sidebar page and back — since React
+      // Router unmounts/remounts route components on navigation.
+      const checkinKey = `attendanceCheckedIn_${userId}_${date}`;
+      if (sessionStorage.getItem(checkinKey)) {
+        if (duration !== null) {
+          startShiftTimer(time, duration);
+        }
+        return;
+      }
+      sessionStorage.setItem(checkinKey, "true");
 
       // Check location permission first
       const hasPermission = await checkLocationPermission();
@@ -1059,9 +1070,9 @@ export default function EmployeeSelfProfile() {
       let locationData = null;
       let retryCount = 0;
       const maxRetries = 3;
-      
+
       showToast("Getting your location...", "info");
-      
+
       while (!locationData && retryCount < maxRetries) {
         locationData = await getCurrentLocation();
         if (!locationData && retryCount < maxRetries - 1) {
@@ -1072,14 +1083,14 @@ export default function EmployeeSelfProfile() {
         retryCount++;
       }
 
-    let currentLat = 0;
-    let currentLng = 0;
-    let address = "Unknown";
-    
-    if (locationData) {
-      currentLat = parseFloat(locationData.lat);
-      currentLng = parseFloat(locationData.lng);
-      address = locationData.address;
+      let currentLat = 0;
+      let currentLng = 0;
+      let address = "Unknown";
+
+      if (locationData) {
+        currentLat = parseFloat(locationData.lat);
+        currentLng = parseFloat(locationData.lng);
+        address = locationData.address;
         showToast("Location obtained successfully", "success");
       } else {
         console.warn("Could not get location after retries, proceeding with default values");
@@ -1088,126 +1099,126 @@ export default function EmployeeSelfProfile() {
         if (retryCount >= maxRetries) {
           console.warn("Location unavailable after all retries");
         }
-    }
-
-    const alreadyChecked = sessionStorage.getItem("locationChecked");
-
-    if (!workFromHome) {
-      const getPublicIP = async (): Promise<string | null> => {
-        try {
-          const res = await fetch("https://api64.ipify.org?format=json");
-          if (!res.ok) throw new Error("Failed to fetch IP");
-          const data = await res.json();
-          return data.ip;
-        } catch (error) {
-          console.error("Failed to fetch public IP:", error);
-          return null;
-        }
-      };
-
-      const userIP = await getPublicIP();
-      console.log("🌐 Public IP:", userIP);
-
-      const officeRef = doc(db, "officeNetwork", "allowedIPs");
-      const officeSnap = await getDoc(officeRef);
-      const allowedIPs = officeSnap.exists() ? officeSnap.data().ips || [] : [];
-
-      if (!userIP || !allowedIPs.includes(userIP)) {
-          showToast(`❌ You are not connected to an allowed office Wi-Fi.\nYour IP: ${userIP}`, "error");
-        await signOut(auth);
-        window.location.href = "/login";
-        return;
       }
 
-        if (alreadyChecked !== date && locationData) {
-        const distance = haversineDistance(currentLat, currentLng, lat, lng);
-        if (distance > 3.5) {
-            showToast(`❌ Too far from assigned location.\nDistance: ${(distance * 1000).toFixed(2)} meters`, "error");
+      const alreadyChecked = sessionStorage.getItem("locationChecked");
+
+      if (!workFromHome) {
+        const getPublicIP = async (): Promise<string | null> => {
+          try {
+            const res = await fetch("https://api64.ipify.org?format=json");
+            if (!res.ok) throw new Error("Failed to fetch IP");
+            const data = await res.json();
+            return data.ip;
+          } catch (error) {
+            console.error("Failed to fetch public IP:", error);
+            return null;
+          }
+        };
+
+        const userIP = await getPublicIP();
+        console.log("🌐 Public IP:", userIP);
+
+        const officeRef = doc(db, "officeNetwork", "allowedIPs");
+        const officeSnap = await getDoc(officeRef);
+        const allowedIPs = officeSnap.exists() ? officeSnap.data().ips || [] : [];
+
+        if (!userIP || !allowedIPs.includes(userIP)) {
+          showToast(`❌ You are not connected to an allowed office Wi-Fi.\nYour IP: ${userIP}`, "error");
           await signOut(auth);
           window.location.href = "/login";
           return;
         }
 
-        sessionStorage.setItem("locationChecked", date);
+        if (alreadyChecked !== date && locationData) {
+          const distance = haversineDistance(currentLat, currentLng, lat, lng);
+          if (distance > 3.5) {
+            showToast(`❌ Too far from assigned location.\nDistance: ${(distance * 1000).toFixed(2)} meters`, "error");
+            await signOut(auth);
+            window.location.href = "/login";
+            return;
+          }
+
+          sessionStorage.setItem("locationChecked", date);
+        }
       }
-    }
 
-    const attendanceRef = doc(db, "attendance", `${userId}_${date}`);
-    const snap = await getDoc(attendanceRef);
+      const attendanceRef = doc(db, "attendance", `${userId}_${date}`);
+      const snap = await getDoc(attendanceRef);
 
-    // Determine if user is working from home or office
-    const isWorkFromHome = workFromHome === true;
-    
-    // Get user's IP address
-    let userIP = "";
-    try {
-      const ipResponse = await fetch("https://api64.ipify.org?format=json");
-      if (ipResponse.ok) {
-        const ipData = await ipResponse.json();
-        userIP = ipData.ip;
+      // Determine if user is working from home or office
+      const isWorkFromHome = workFromHome === true;
+
+      // Get user's IP address
+      let userIP = "";
+      try {
+        const ipResponse = await fetch("https://api64.ipify.org?format=json");
+        if (ipResponse.ok) {
+          const ipData = await ipResponse.json();
+          userIP = ipData.ip;
+        }
+      } catch (error) {
+        console.error("Failed to fetch IP address:", error);
       }
-    } catch (error) {
-      console.error("Failed to fetch IP address:", error);
-    }
 
-    // Check if IP is in office network
-    let isOfficeIP = false;
-    if (userIP) {
-      const officeRef = doc(db, "officeNetwork", "allowedIPs");
-      const officeSnap = await getDoc(officeRef);
-      const allowedIPs = officeSnap.exists() ? officeSnap.data().ips || [] : [];
-      isOfficeIP = allowedIPs.includes(userIP);
-    }
+      // Check if IP is in office network
+      let isOfficeIP = false;
+      if (userIP) {
+        const officeRef = doc(db, "officeNetwork", "allowedIPs");
+        const officeSnap = await getDoc(officeRef);
+        const allowedIPs = officeSnap.exists() ? officeSnap.data().ips || [] : [];
+        isOfficeIP = allowedIPs.includes(userIP);
+      }
 
-    const newSession = {
-      login: time,
-      login_time: time, // server time
-      logout: "",
-      logout_time: "",
-      loginIP: userIP,
-      isOfficeLogin: isOfficeIP,
-      loginLocation: isOfficeIP
-        ? {
+      const newSession = {
+        login: time,
+        login_time: time, // server time
+        logout: "",
+        logout_time: "",
+        loginIP: userIP,
+        isOfficeLogin: isOfficeIP,
+        loginLocation: isOfficeIP
+          ? {
             lat: 0,
             lng: 0,
             address: "Novel Office"
           }
-        : {
+          : {
             lat: currentLat,
             lng: currentLng,
             address: address || "Location not available"
           },
-    };
+      };
 
-    if (!snap.exists()) {
-      await setDoc(attendanceRef, {
-        userId,
-        name,
-        date,
-        sessions: [newSession],
-        totalHours: "",
-      });
-      setLoginTime(time);
+      if (!snap.exists()) {
+        await setDoc(attendanceRef, {
+          userId,
+          name,
+          date,
+          sessions: [newSession],
+          totalHours: "",
+        });
+        setLoginTime(time);
         showToast("✅ Attendance logged successfully!", "success");
-    } else {
-      const data = snap.data();
-      const sessions = data.sessions || [];
-      if (sessions.length > 0) setLoginTime(sessions[0].login);
-      setTotalHours(data.totalHours || "0h 0m 0s");
+      } else {
+        const data = snap.data();
+        const sessions = data.sessions || [];
+        if (sessions.length > 0) setLoginTime(sessions[0].login);
+        setTotalHours(data.totalHours || "0h 0m 0s");
 
         if (!sessions[sessions.length - 1]?.logout) {
           showToast("You are already logged in", "info");
           return;
         }
 
-      sessions.push(newSession);
-      await updateDoc(attendanceRef, { sessions });
+        sessions.push(newSession);
+        await updateDoc(attendanceRef, { sessions });
         showToast("✅ New session started!", "success");
-    }
-      
-    // Start shift timer only if duration is available
-    if (duration !== null) {
-      startShiftTimer(time, duration);
+      }
+
+      // Start shift timer only if duration is available
+      if (duration !== null) {
+        startShiftTimer(time, duration);
         showToast(`Shift timer started (${Math.floor(duration / 3600)} hours)`, "info");
       }
     } catch (error) {
@@ -1237,35 +1248,35 @@ export default function EmployeeSelfProfile() {
     if (!user) return;
 
     try {
-    const { date } = await getServerDateTime();
+      const { date } = await getServerDateTime();
       const monthKey = date.slice(0, 7);
       const summaryRef = doc(db, "attendanceSummary", `${user.uid}_${monthKey}`);
-    const summarySnap = await getDoc(summaryRef);
+      const summarySnap = await getDoc(summaryRef);
 
-    // --- DEFAULTS ---
-    const DEFAULT_WORKING_DAYS = 23;
-    const DEFAULT_ENTITLED_LEAVE = 1;
-    const MAX_CARRY_FORWARD = 2;
+      // --- DEFAULTS ---
+      const DEFAULT_WORKING_DAYS = 23;
+      const DEFAULT_ENTITLED_LEAVE = 1;
+      const MAX_CARRY_FORWARD = 2;
 
-    // --- Calculate today's hours ---
-    const secToday = sessions.reduce((acc: number, s: any) => {
-      if (!s.login || !s.logout) return acc;
-      const login = parseTimeToDate(s.login);
-      const logout = parseTimeToDate(s.logout);
-      let d = (logout.getTime() - login.getTime()) / 1000;
-      if (d < 0) d += 86400;
-      return acc + d;
-    }, 0);
+      // --- Calculate today's hours ---
+      const secToday = sessions.reduce((acc: number, s: any) => {
+        if (!s.login || !s.logout) return acc;
+        const login = parseTimeToDate(s.login);
+        const logout = parseTimeToDate(s.logout);
+        let d = (logout.getTime() - login.getTime()) / 1000;
+        if (d < 0) d += 86400;
+        return acc + d;
+      }, 0);
 
-    const H = Math.floor(secToday / 3600);
-    const M = Math.floor((secToday % 3600) / 60);
-    const S = Math.floor(secToday % 60);
-    const todayWorkingStr = `${H}h ${M}m ${S}s`;
+      const H = Math.floor(secToday / 3600);
+      const M = Math.floor((secToday % 3600) / 60);
+      const S = Math.floor(secToday % 60);
+      const todayWorkingStr = `${H}h ${M}m ${S}s`;
 
-    // --- Base summary ---
-    const base = summarySnap.exists()
-      ? summarySnap.data()
-      : {
+      // --- Base summary ---
+      const base = summarySnap.exists()
+        ? summarySnap.data()
+        : {
           userId: auth.currentUser!.uid,
           name: profile.name,
           email: profile.email || "",
@@ -1284,66 +1295,66 @@ export default function EmployeeSelfProfile() {
           extraWorkLog: {},
         };
 
-    // --- Reclassification of old count if already present ---
-    const alreadyCounted = base.countedDates.includes(date);
-    if (alreadyCounted) {
-      const prev = base.dailyHours[date] || "0h 0m 0s";
-      const [ph, pm, ps] = prev
-        .split(/[hms ]+/)
-        .filter(Boolean)
-        .map(Number);
-      const prevHours = ph + pm / 60 + ps / 3600;
+      // --- Reclassification of old count if already present ---
+      const alreadyCounted = base.countedDates.includes(date);
+      if (alreadyCounted) {
+        const prev = base.dailyHours[date] || "0h 0m 0s";
+        const [ph, pm, ps] = prev
+          .split(/[hms ]+/)
+          .filter(Boolean)
+          .map(Number);
+        const prevHours = ph + pm / 60 + ps / 3600;
 
         if (prevHours >= 8.4) base.presentDays -= 1;
         else if (prevHours >= 4.2) base.halfDays -= 1;
-      else base.absentDays -= 1;
+        else base.absentDays -= 1;
 
-      const totalUsedLeaves = base.leavesTaken + base.extraLeaves;
-      if (prevHours === 0 && totalUsedLeaves > 0) {
-        if (base.extraLeaves > 0) base.extraLeaves -= 1;
-        else base.leavesTaken -= 1;
+        const totalUsedLeaves = base.leavesTaken + base.extraLeaves;
+        if (prevHours === 0 && totalUsedLeaves > 0) {
+          if (base.extraLeaves > 0) base.extraLeaves -= 1;
+          else base.leavesTaken -= 1;
+        }
+      } else {
+        base.countedDates.push(date);
       }
-    } else {
-      base.countedDates.push(date);
-    }
 
-    // --- Reclassify based on new value ---
-    base.dailyHours[date] = todayWorkingStr;
+      // --- Reclassify based on new value ---
+      base.dailyHours[date] = todayWorkingStr;
       if (H >= 8.4) base.presentDays += 1;
       else if (H >= 4.2) base.halfDays += 1;
-    else base.absentDays += 1;
+      else base.absentDays += 1;
 
-    // --- LEAVE & CARRY FORWARD LOGIC ---
-    // 1. Start with entitled leave for the month
-    let entitledLeave = DEFAULT_ENTITLED_LEAVE;
-    let carryForward = base.carryForwardLeaves || 0;
-    let usedLeaves = 0;
-    let extraLeaves = 0;
-    let absentDays = 0;
-    let presentDays = 0;
-    let halfDays = 0;
+      // --- LEAVE & CARRY FORWARD LOGIC ---
+      // 1. Start with entitled leave for the month
+      let entitledLeave = DEFAULT_ENTITLED_LEAVE;
+      let carryForward = base.carryForwardLeaves || 0;
+      let usedLeaves = 0;
+      let extraLeaves = 0;
+      let absentDays = 0;
+      let presentDays = 0;
+      let halfDays = 0;
 
       // 2. Count absences (days with 0 hours) and check leave status
-    const allDates = Object.keys(base.dailyHours);
-    for (const d of allDates) {
-      const hoursStr = base.dailyHours[d];
-      const [h, m, s] = hoursStr.split(/[hms ]+/).filter(Boolean).map(Number);
-      const totalHrs = h + m / 60 + s / 3600;
-        
+      const allDates = Object.keys(base.dailyHours);
+      for (const d of allDates) {
+        const hoursStr = base.dailyHours[d];
+        const [h, m, s] = hoursStr.split(/[hms ]+/).filter(Boolean).map(Number);
+        const totalHrs = h + m / 60 + s / 3600;
+
         // New attendance conditions:
         // Full day: 8 hours 24 minutes and above (8.4 hours)
         // Half day: 4 hours 12 minutes to 8 hours 23 minutes 59 seconds (4.2 to 8.399 hours)
         // Absent: Less than 4 hours 11 minutes 59 seconds (less than 4.2 hours)
-        
+
         if (totalHrs >= 8.4) presentDays += 1;
         else if (totalHrs >= 4.2) halfDays += 1;
-      else {
+        else {
           // Absent day - check if it's an approved leave
           try {
             // Check leave status for this date
             const leaveRef = doc(db, "leaveManage", `${user.uid}_${d}`);
             const leaveSnap = await getDoc(leaveRef);
-            
+
             if (leaveSnap.exists()) {
               const leaveData = leaveSnap.data();
               if (leaveData.status === "accepted") {
@@ -1363,15 +1374,15 @@ export default function EmployeeSelfProfile() {
                 presentDays += 1;
               } else {
                 // Pending or other status - count as LOP
-        if (carryForward > 0) {
-          carryForward -= 1;
-        } else if (entitledLeave > 0) {
-          entitledLeave -= 1;
-          usedLeaves += 1;
-        } else {
-          extraLeaves += 1;
-        }
-        absentDays += 1;
+                if (carryForward > 0) {
+                  carryForward -= 1;
+                } else if (entitledLeave > 0) {
+                  entitledLeave -= 1;
+                  usedLeaves += 1;
+                } else {
+                  extraLeaves += 1;
+                }
+                absentDays += 1;
               }
             } else {
               // No leave record - count as LOP
@@ -1398,30 +1409,30 @@ export default function EmployeeSelfProfile() {
             }
             absentDays += 1;
           }
+        }
       }
-    }
 
-    // 3. Carry forward unused entitled leave (max 2)
-    if (entitledLeave > 0) {
+      // 3. Carry forward unused entitled leave (max 2)
+      if (entitledLeave > 0) {
         // Unused entitled leave carries forward as CF
         carryForward = Math.min(MAX_CARRY_FORWARD, entitledLeave);
       } else {
         // If entitled leave was used, CF remains from previous month
         carryForward = base.carryForwardLeaves || 0;
-    }
+      }
 
-    // 4. Update summary fields
-    base.presentDays = presentDays;
-    base.halfDays = halfDays;
-    base.absentDays = absentDays;
-    base.leavesTaken = usedLeaves;
-    base.extraLeaves = extraLeaves;
-    base.carryForwardLeaves = carryForward;
-    base.totalWorkingDays = DEFAULT_WORKING_DAYS;
+      // 4. Update summary fields
+      base.presentDays = presentDays;
+      base.halfDays = halfDays;
+      base.absentDays = absentDays;
+      base.leavesTaken = usedLeaves;
+      base.extraLeaves = extraLeaves;
+      base.carryForwardLeaves = carryForward;
+      base.totalWorkingDays = DEFAULT_WORKING_DAYS;
 
-    // 5. Total month hours
-    base.totalmonthHours = recalculateTotalHours(base.dailyHours);
-    await setDoc(summaryRef, base);
+      // 5. Total month hours
+      base.totalmonthHours = recalculateTotalHours(base.dailyHours);
+      await setDoc(summaryRef, base);
     } catch (error) {
       console.error("Error updating monthly summary:", error);
     }
@@ -1430,7 +1441,7 @@ export default function EmployeeSelfProfile() {
   const handleLogoutUpdate = async (): Promise<string | null> => {
     const user = auth.currentUser;
     if (!user) return null;
-    
+
     try {
       // Get server date/time with fallback to local time
       let date, time;
@@ -1448,7 +1459,7 @@ export default function EmployeeSelfProfile() {
       const attendanceRef = doc(db, "attendance", `${user.uid}_${date}`);
       const snap = await getDoc(attendanceRef);
       if (!snap.exists()) return null;
-        
+
       const sessions = [...snap.data().sessions];
       const lastSession = sessions[sessions.length - 1];
       if (!lastSession || lastSession.logout) {
@@ -1459,11 +1470,11 @@ export default function EmployeeSelfProfile() {
       // Check if user logged in from office IP
       const isOfficeLogin = lastSession.isOfficeLogin === true;
       let logoutLocation = null;
-      
+
       // Only get GPS location if user is not logging out from office
       if (!isOfficeLogin) {
         logoutLocation = await getCurrentLocation();
-        
+
         // Retry logic for GPS location
         let retryCount = 0;
         while (!logoutLocation && retryCount < 3) {
@@ -1474,11 +1485,11 @@ export default function EmployeeSelfProfile() {
           retryCount++;
         }
       }
-    
+
       // Store logout_time as server time
       lastSession.logout = time;
       lastSession.logout_time = time;
-      
+
       // Set logout location based on office/remote login
       if (isOfficeLogin) {
         // For office users, set Novel Office location
@@ -1503,24 +1514,24 @@ export default function EmployeeSelfProfile() {
           address: "Location unavailable"
         };
       }
-    
-    // Calculate total working hours for this session
-    const loginDate = parseTimeToDate(lastSession.login_time || lastSession.login);
-    const logoutDate = parseTimeToDate(lastSession.logout_time || lastSession.logout);
-    let diff = (logoutDate.getTime() - loginDate.getTime()) / 1000;
-    if (diff < 0) diff += 86400;
-    lastSession.sessionDuration = diff;
-      
-    // Only sum durations between login and logout
-    const totalSec = sessions.reduce((acc, s) => acc + (s.sessionDuration || 0), 0);
-    const hrs = Math.floor(totalSec / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = Math.floor(totalSec % 60);
-    const total = `${hrs}h ${mins}m ${secs}s`;
-      
-    await updateDoc(attendanceRef, { sessions, totalHours: total });
-    setTotalHours(total);
-    return total;
+
+      // Calculate total working hours for this session
+      const loginDate = parseTimeToDate(lastSession.login_time || lastSession.login);
+      const logoutDate = parseTimeToDate(lastSession.logout_time || lastSession.logout);
+      let diff = (logoutDate.getTime() - loginDate.getTime()) / 1000;
+      if (diff < 0) diff += 86400;
+      lastSession.sessionDuration = diff;
+
+      // Only sum durations between login and logout
+      const totalSec = sessions.reduce((acc, s) => acc + (s.sessionDuration || 0), 0);
+      const hrs = Math.floor(totalSec / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = Math.floor(totalSec % 60);
+      const total = `${hrs}h ${mins}m ${secs}s`;
+
+      await updateDoc(attendanceRef, { sessions, totalHours: total });
+      setTotalHours(total);
+      return total;
     } catch (error) {
       console.error("Error in handleLogoutUpdate:", error);
       return null;
@@ -1532,19 +1543,21 @@ export default function EmployeeSelfProfile() {
     try {
       setLoggingOut(true);
       didLogout.current = true;
-      
+
       // Clear any existing timers
       if (shiftTimerId) {
         clearInterval(shiftTimerId);
         setShiftTimerId(null);
       }
-      
+
       // Clear session storage
       sessionStorage.removeItem("locationChecked");
-      
+      Object.keys(sessionStorage)
+        .filter((k) => k.startsWith("attendanceCheckedIn_"))
+        .forEach((k) => sessionStorage.removeItem(k));
       // Sign out from Firebase Auth
       await signOut(auth);
-      
+
       // Redirect to login page
       window.location.href = '/login';
     } catch (error) {
@@ -1581,7 +1594,9 @@ export default function EmployeeSelfProfile() {
         // Force logout even if some operations fail
         signOut(auth).then(() => {
           sessionStorage.removeItem("locationChecked");
-          window.location.href = '/login';
+          Object.keys(sessionStorage)
+            .filter((k) => k.startsWith("attendanceCheckedIn_"))
+            .forEach((k) => sessionStorage.removeItem(k)); window.location.href = '/login';
         }).catch(() => {
           // If even signOut fails, force redirect
           window.location.href = '/login';
@@ -1590,16 +1605,16 @@ export default function EmployeeSelfProfile() {
 
       // Update active users collection with timeout
       try {
-      const activeRef = doc(db, "activeUsers", profile.uid);
+        const activeRef = doc(db, "activeUsers", profile.uid);
         await Promise.race([
           setDoc(
-        activeRef,
-        { 
-          status: 'offline',
-          lastSeen: serverTimestamp(),
-          logoutTime: new Date().toLocaleTimeString()
-        },
-        { merge: true }
+            activeRef,
+            {
+              status: 'offline',
+              lastSeen: serverTimestamp(),
+              logoutTime: new Date().toLocaleTimeString()
+            },
+            { merge: true }
           ),
           new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 10000))
         ]);
@@ -1632,30 +1647,32 @@ export default function EmployeeSelfProfile() {
         showToast("Warning: Monthly summary update failed, but logout will continue", "warning");
         // Continue with logout even if summary update fails
       }
-      
+
       // Clear any existing timers
       if (shiftTimerId) {
         clearInterval(shiftTimerId);
         setShiftTimerId(null);
       }
-      
+
       // Clear timeout since we're proceeding normally
       clearTimeout(logoutTimeout);
-      
+
       // Sign out from Firebase Auth
       await signOut(auth);
-      
+
       // Clear session storage
       sessionStorage.removeItem("locationChecked");
-      
+      Object.keys(sessionStorage)
+        .filter((k) => k.startsWith("attendanceCheckedIn_"))
+        .forEach((k) => sessionStorage.removeItem(k));
       showToast("Logged out successfully", "success");
-      
+
       // Redirect to login page after successful logout
       window.location.href = '/login';
-      
+
     } catch (err) {
       console.error("Logout error:", err);
-      
+
       // Provide more specific error messages
       let errorMessage = "Failed to logout. Please try again.";
       if (err instanceof Error) {
@@ -1667,7 +1684,7 @@ export default function EmployeeSelfProfile() {
           errorMessage = "Authentication error. Please refresh the page and try again.";
         }
       }
-      
+
       showToast(errorMessage, "error");
       setLoggingOut(false);
       didLogout.current = false;
@@ -1752,7 +1769,7 @@ export default function EmployeeSelfProfile() {
           const profileSnap = await getDoc(doc(db, "employees", user.uid));
           if (profileSnap.exists()) {
 
-                        setProfile({ ...profileSnap.data(), uid: user.uid }); // ✅ Inject uid for later use
+            setProfile({ ...profileSnap.data(), uid: user.uid }); // ✅ Inject uid for later use
 
             // Mark this user online for the "Online Users" widget
             try {
@@ -1782,7 +1799,7 @@ export default function EmployeeSelfProfile() {
               if (sessionsData.length > 0) setLoginTime(sessionsData[0].login);
               setTotalHours(data.totalHours || "0h 0m 0s");
             }
-            
+
             // Fetch AI data for the authenticated user
             await fetchAIData(user.uid);
           }
@@ -2097,10 +2114,10 @@ export default function EmployeeSelfProfile() {
       if (emp.dob) {
         const dob = new Date(emp.dob);
         const thisYearBirthday = new Date(weekStart.getFullYear(), dob.getMonth(), dob.getDate());
-        if (isDateInWeek(thisYearBirthday.toISOString().slice(0,10), weekStart, weekEnd)) {
+        if (isDateInWeek(thisYearBirthday.toISOString().slice(0, 10), weekStart, weekEnd)) {
           birthdays.push({
             ...emp,
-            eventDate: thisYearBirthday.toISOString().slice(0,10),
+            eventDate: thisYearBirthday.toISOString().slice(0, 10),
             type: 'Birthday',
           });
         }
@@ -2108,10 +2125,10 @@ export default function EmployeeSelfProfile() {
       if (emp.joiningDate) {
         const join = new Date(emp.joiningDate);
         const thisYearAnniv = new Date(weekStart.getFullYear(), join.getMonth(), join.getDate());
-        if (isDateInWeek(thisYearAnniv.toISOString().slice(0,10), weekStart, weekEnd)) {
+        if (isDateInWeek(thisYearAnniv.toISOString().slice(0, 10), weekStart, weekEnd)) {
           anniversaries.push({
             ...emp,
-            eventDate: thisYearAnniv.toISOString().slice(0,10),
+            eventDate: thisYearAnniv.toISOString().slice(0, 10),
             type: 'Anniversary',
           });
         }
@@ -2155,37 +2172,37 @@ export default function EmployeeSelfProfile() {
   // Shift timer logic with improved popup
   const startShiftTimer = (loginTime: string, duration: number) => {
     if (shiftTimerId) clearInterval(shiftTimerId);
-    
+
     const timer = setInterval(async () => {
       try {
-      const { time } = await getServerDateTime();
-      const loginDate = parseTimeToDate(loginTime);
-      const nowDate = parseTimeToDate(time);
-      let elapsed = (nowDate.getTime() - loginDate.getTime()) / 1000;
-      if (elapsed < 0) elapsed += 86400;
-      const remaining = duration - elapsed;
-        
-      setShiftCountdown(remaining);
-        
+        const { time } = await getServerDateTime();
+        const loginDate = parseTimeToDate(loginTime);
+        const nowDate = parseTimeToDate(time);
+        let elapsed = (nowDate.getTime() - loginDate.getTime()) / 1000;
+        if (elapsed < 0) elapsed += 86400;
+        const remaining = duration - elapsed;
+
+        setShiftCountdown(remaining);
+
         // Show popup 5 minutes before shift ends
         if (remaining <= 300 && remaining > 0) { // 5 minutes = 300 seconds
-        setShowShiftPopup(true);
+          setShowShiftPopup(true);
         } else if (remaining <= 0) {
           setShowShiftPopup(false);
           clearInterval(timer);
           setShiftTimerId(null);
-          
+
           // Auto logout when shift ends
           alert("Your shift has ended. You will be logged out automatically.");
           await handleLogout();
-      } else {
-        setShowShiftPopup(false);
-      }
+        } else {
+          setShowShiftPopup(false);
+        }
       } catch (error) {
         console.error("Error in shift timer:", error);
       }
     }, 1000);
-    
+
     setShiftTimerId(timer);
   };
 
@@ -2261,17 +2278,16 @@ export default function EmployeeSelfProfile() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 relative overflow-x-hidden">
       {/* Toast Notification */}
       {toast && (
-        <div className={`fixed top-4 right-4 z-50 p-4 rounded-xl shadow-2xl max-w-sm transform transition-all duration-300 ${
-          toast.type === 'success' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' :
-          toast.type === 'error' ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white' :
-          toast.type === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
-          'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
-        }`}>
+        <div className={`fixed top-4 right-4 z-50 p-4 rounded-xl shadow-2xl max-w-sm transform transition-all duration-300 ${toast.type === 'success' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' :
+            toast.type === 'error' ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white' :
+              toast.type === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
+                'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+          }`}>
           <div className="flex items-center gap-2">
             <span className="text-lg">
               {toast.type === 'success' ? '✅' :
-               toast.type === 'error' ? '❌' :
-               toast.type === 'warning' ? '⚠️' : 'ℹ️'}
+                toast.type === 'error' ? '❌' :
+                  toast.type === 'warning' ? '⚠️' : 'ℹ️'}
             </span>
             <span className="font-medium">{toast.message}</span>
           </div>
@@ -2280,7 +2296,7 @@ export default function EmployeeSelfProfile() {
 
       {/* Highlights Bar */}
       {!highlightsLoading && <HighlightsBar highlights={highlights} />}
-      
+
       {/* Birthday Wishes */}
       {todaysBirthdays.length > 0 && (
         <div className="relative bg-gradient-to-br from-amber-100 via-yellow-50 to-rose-100 dark:from-amber-900 dark:via-yellow-900 dark:to-rose-900 rounded-2xl p-6 shadow-xl flex flex-col items-center gap-3 border-4 border-transparent bg-clip-padding animate-fade-in-up mb-2 overflow-hidden mt-4">
@@ -2307,7 +2323,7 @@ export default function EmployeeSelfProfile() {
           <span className="text-2xl font-extrabold text-rose-700 dark:text-rose-200 z-10 drop-shadow-lg">
             Happy Birthday {todaysBirthdays.map(b => b.title).join(', ')}!
           </span>
-          <span className="text-base text-rose-800 dark:text-rose-100 z-10 text-center">Wishing you a wonderful year ahead! 🎉<br/>Enjoy your special day with lots of joy and success!</span>
+          <span className="text-base text-rose-800 dark:text-rose-100 z-10 text-center">Wishing you a wonderful year ahead! 🎉<br />Enjoy your special day with lots of joy and success!</span>
           <div className="flex gap-3 mt-2 z-10">
             {todaysBirthdays.map(b => b.photo && b.photo !== 'NA' ? (
               <img
@@ -2327,10 +2343,10 @@ export default function EmployeeSelfProfile() {
           </div>
         </div>
       )}
-      
+
       {/* Animated SVG/gradient background */}
       <div className="absolute inset-0 z-0 pointer-events-none" />
-      
+
       {/* Header */}
       <header className="flex flex-col md:flex-row items-center justify-between gap-4 px-6 py-8 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600 dark:from-blue-900 dark:via-indigo-900 dark:to-purple-600 shadow-2xl sticky top-0 z-20 backdrop-blur-md rounded-b-3xl border-b border-blue-100 dark:border-gray-800 relative overflow-hidden">
         <div className="flex items-center gap-6">
@@ -2351,30 +2367,29 @@ export default function EmployeeSelfProfile() {
         <div className="flex flex-col items-end gap-2">
           <LiveDateTime />
           <div className="flex gap-2">
-  <button
-    onClick={handleLogout}
-    disabled={loggingOut}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg transition-all duration-300 ${
-              loggingOut 
-                ? 'bg-gray-400 cursor-not-allowed' 
-                : 'bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 hover:scale-105'
-            }`}
-          >
-            {loggingOut ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                Logging out...
-              </>
-            ) : (
-              <>
-    <LogOut className="w-4 h-4" />
-    Logout
-              </>
-            )}
-  </button>
-            
+            <button
+              onClick={handleLogout}
+              disabled={loggingOut}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg transition-all duration-300 ${loggingOut
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 hover:scale-105'
+                }`}
+            >
+              {loggingOut ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                  Logging out...
+                </>
+              ) : (
+                <>
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </>
+              )}
+            </button>
+
           </div>
-</div>
+        </div>
         {/* Animated accent */}
         <svg className="absolute right-0 top-0 h-full w-40 opacity-20 pointer-events-none" viewBox="0 0 200 400" fill="none" xmlns="http://www.w3.org/2000/svg">
           <circle cx="100" cy="200" r="120" fill="#fff" fillOpacity="0.15">
@@ -2382,213 +2397,213 @@ export default function EmployeeSelfProfile() {
           </circle>
         </svg>
       </header>
-      
+
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        {/* Main Content: col-span-2 */}
+          {/* Main Content: col-span-2 */}
           <div className="xl:col-span-2 flex flex-col gap-6">
-          {/* Quick Stats */}
+            {/* Quick Stats */}
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               <div className="stats-card stats-card-success">
                 <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{attendanceSummary ? attendanceSummary.presentDays : 0}</span>
                 <span className="text-xs text-emerald-800 dark:text-emerald-100 mt-1">Present Days</span>
-            </div>
+              </div>
               <div className="stats-card stats-card-primary">
-            <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{attendanceSummary ? attendanceSummary.leavesTaken : 0}</span>
+                <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{attendanceSummary ? attendanceSummary.leavesTaken : 0}</span>
                 <span className="text-xs text-blue-800 dark:text-blue-100 mt-1">Leaves Taken</span>
-            </div>
+              </div>
               <div className="stats-card stats-card-warning">
                 <span className="text-2xl font-bold text-amber-700 dark:text-amber-200">{totalLogins}</span>
                 <span className="text-xs text-amber-800 dark:text-amber-100 mt-1">Total Logins</span>
-            </div>
+              </div>
               <div className="stats-card stats-card-primary">
-              <span className="text-2xl font-bold text-blue-700 dark:text-blue-200">{badgeStats.badge}</span>
-              
-            </div>
+                <span className="text-2xl font-bold text-blue-700 dark:text-blue-200">{badgeStats.badge}</span>
+
+              </div>
               <div className="stats-card stats-card-success">
-              <span className="text-2xl font-bold text-teal-700 dark:text-teal-200">{totalHours || "0h 0m"}</span>
-              <span className="text-xs text-teal-800 dark:text-teal-100 mt-1">Total Hours</span>
-          </div>
-          </div>
-            
+                <span className="text-2xl font-bold text-teal-700 dark:text-teal-200">{totalHours || "0h 0m"}</span>
+                <span className="text-xs text-teal-800 dark:text-teal-100 mt-1">Total Hours</span>
+              </div>
+            </div>
+
             {/* Calendar Section */}
             <div className="card">
               <div className="card-header">
                 <h2 className="heading-3 flex items-center gap-2 text-blue-700 dark:text-blue-300">
-              <CalendarDays className="w-7 h-7 text-blue-500" />
-              Calendar
-            </h2>
+                  <CalendarDays className="w-7 h-7 text-blue-500" />
+                  Calendar
+                </h2>
               </div>
               <div className="card-body">
                 <div className="flex flex-col sm:flex-row items-center gap-2 mb-4">
-              <select
-                value={calendarMonthCreative}
-                onChange={e => setCalendarMonthCreative(Number(e.target.value))}
+                  <select
+                    value={calendarMonthCreative}
+                    onChange={e => setCalendarMonthCreative(Number(e.target.value))}
                     className="input"
-              >
-                {["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"].map((m, i) => (
-                  <option key={m} value={i}>{m}</option>
-                ))}
-              </select>
-                      <input
-                type="number"
-                value={calendarYearCreative}
-                onChange={e => setCalendarYearCreative(Number(e.target.value))}
+                  >
+                    {["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"].map((m, i) => (
+                      <option key={m} value={i}>{m}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={calendarYearCreative}
+                    onChange={e => setCalendarYearCreative(Number(e.target.value))}
                     className="input w-24"
-                min={2000}
-                max={2100}
-              />
+                    min={2000}
+                    max={2100}
+                  />
                   <button
                     className="btn btn-secondary"
-                onClick={() => setCalendarDaysCreative({})}
+                    onClick={() => setCalendarDaysCreative({})}
                   >
-                Use Firestore
+                    Use Firestore
                   </button>
                 </div>
-                
+
                 {/* Modern Calendar Grid */}
-            {(() => {
-              const days: string[] = getMonthDays_Calendar(calendarYearCreative, calendarMonthCreative);
-              const firstDay = new Date(Date.UTC(calendarYearCreative, calendarMonthCreative, 1)).getUTCDay();
-              const weeks: Array<Array<string>> = [[]];
-              for (let i = 0; i < firstDay; i++) weeks[0].push("");
-              days.forEach((d, i) => {
-                if (weeks[weeks.length - 1].length === 7) weeks.push([]);
-                weeks[weeks.length - 1].push(d);
-              });
-              while (weeks[weeks.length - 1].length < 7) weeks[weeks.length - 1].push("");
-              const today = new Date().toISOString().slice(0, 10);
-              return (
+                {(() => {
+                  const days: string[] = getMonthDays_Calendar(calendarYearCreative, calendarMonthCreative);
+                  const firstDay = new Date(Date.UTC(calendarYearCreative, calendarMonthCreative, 1)).getUTCDay();
+                  const weeks: Array<Array<string>> = [[]];
+                  for (let i = 0; i < firstDay; i++) weeks[0].push("");
+                  days.forEach((d, i) => {
+                    if (weeks[weeks.length - 1].length === 7) weeks.push([]);
+                    weeks[weeks.length - 1].push(d);
+                  });
+                  while (weeks[weeks.length - 1].length < 7) weeks[weeks.length - 1].push("");
+                  const today = new Date().toISOString().slice(0, 10);
+                  return (
                     <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-4 sm:p-6 mt-4 w-full max-w-4xl mx-auto overflow-x-auto">
                       <div className="grid grid-cols-7 gap-1 text-xs font-semibold text-center mb-2">
-                    {"SMTWTFS".split("").map((d, i) => (
+                        {"SMTWTFS".split("").map((d, i) => (
                           <div key={i} className="text-gray-600 dark:text-gray-400 p-2">{d}</div>
-                  ))}
-                </div>
-                  {weeks.map((week, wi) => (
-                    <div key={wi} className="grid grid-cols-7 gap-1 mb-1">
-                      {week.map((date, di) => {
+                        ))}
+                      </div>
+                      {weeks.map((week, wi) => (
+                        <div key={wi} className="grid grid-cols-7 gap-1 mb-1">
+                          {week.map((date, di) => {
                             if (!date) return <div key={di} className="h-16" />;
-                        const info = calendarDaysCreative[date];
-                        const isWeekend = new Date(date).getUTCDay() === 0 || new Date(date).getUTCDay() === 6;
-                        let bg = "";
-                        let text = "";
-                        let title = "";
-                        if (info?.type === "holiday") {
+                            const info = calendarDaysCreative[date];
+                            const isWeekend = new Date(date).getUTCDay() === 0 || new Date(date).getUTCDay() === 6;
+                            let bg = "";
+                            let text = "";
+                            let title = "";
+                            if (info?.type === "holiday") {
                               bg = "bg-gradient-to-br from-rose-100 to-red-100 dark:from-rose-900/30 dark:to-red-900/30 border border-rose-300 dark:border-rose-700";
-                          text = "Holiday";
-                          title = info.reason || text;
-                        } else if (info?.type === "leave") {
+                              text = "Holiday";
+                              title = info.reason || text;
+                            } else if (info?.type === "leave") {
                               bg = "bg-gradient-to-br from-amber-100 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-900/30 border border-amber-300 dark:border-amber-700";
-                          text = "Leave";
-                          title = info.reason || text;
-                        } else if (info?.type === "working") {
+                              text = "Leave";
+                              title = info.reason || text;
+                            } else if (info?.type === "working") {
                               bg = "bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-200 dark:border-emerald-700";
-                          text = "Working";
-                          title = info.reason || text;
-                        } else if (!info && isWeekend) {
+                              text = "Working";
+                              title = info.reason || text;
+                            } else if (!info && isWeekend) {
                               bg = "bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700/50 dark:to-gray-800/50 border border-gray-300 dark:border-gray-600";
-                          text = "Weekend";
-                          title = text;
-                        } else {
+                              text = "Weekend";
+                              title = text;
+                            } else {
                               bg = "bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 border border-emerald-200 dark:border-emerald-700";
-                          text = "Working";
-                          title = text;
-                        }
+                              text = "Working";
+                              title = text;
+                            }
                             if (date === today) bg += " ring-2 ring-blue-400 shadow-lg";
-                        // Add event badges from highlights
-                        const dayEvents = highlights.filter(h => h.type === 'event' && h.date === date);
-                        return (
-                  <button
-                            key={di}
+                            // Add event badges from highlights
+                            const dayEvents = highlights.filter(h => h.type === 'event' && h.date === date);
+                            return (
+                              <button
+                                key={di}
                                 className={`rounded-lg p-2 h-16 flex flex-col items-center justify-center ${bg} hover:ring-2 hover:ring-blue-400 transition-all duration-150 hover:scale-105 text-xs`}
-                            title={title}
-                            onClick={() => onToggleDayCreative(date, info?.type)}
-                  >
+                                title={title}
+                                onClick={() => onToggleDayCreative(date, info?.type)}
+                              >
                                 <span className="font-bold text-sm text-gray-900 dark:text-gray-100">{Number(date.slice(-2))}</span>
                                 <span className="text-xs text-gray-700 dark:text-gray-300">{text}</span>
-                            {info?.reason && (
+                                {info?.reason && (
                                   <span className="text-[8px] text-gray-600 dark:text-gray-400 truncate w-full text-center">{info.reason}</span>
-                            )}
-                            {/* Render event badges */}
-                            {dayEvents.length > 0 && (
-                              <div className="flex flex-col gap-0.5 mt-1 w-full items-center">
-                                {dayEvents.map((ev, idx) => (
+                                )}
+                                {/* Render event badges */}
+                                {dayEvents.length > 0 && (
+                                  <div className="flex flex-col gap-0.5 mt-1 w-full items-center">
+                                    {dayEvents.map((ev, idx) => (
                                       <span key={idx} className="inline-flex items-center px-1 py-0.5 bg-blue-100 dark:bg-blue-800 text-blue-900 dark:text-blue-100 rounded text-[8px] font-medium gap-1 max-w-full truncate">
-                                    <span className="text-xs">📅</span>
-                                    <span className="truncate">{ev.title}</span>
-                                  </span>
-                                ))}
-          </div>
-                            )}
-                  </button>
-                        );
-                      })}
-            </div>
-                  ))}
+                                        <span className="text-xs">📅</span>
+                                        <span className="truncate">{ev.title}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      ))}
                       <div className="mt-4 flex flex-wrap gap-2 text-xs">
                         <span className="badge badge-success">Working Day</span>
                         <span className="badge badge-danger">Holiday</span>
                         <span className="badge badge-warning">Weekend</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+            </div>
           </div>
-                </div>
-              );
-            })()}
-        </div>
-        </div>
-          </div>
-          
+
           {/* Sidebar: Online Users */}
           <div className="xl:col-span-1 flex flex-col gap-4">
             <div className="card">
               <div className="card-header">
                 <h2 className="heading-4 flex items-center gap-2 text-blue-700 dark:text-blue-300">
                   <span className="inline-block w-3 h-3 bg-emerald-400 rounded-full animate-pulse"></span>
-              Online Users <span className="ml-1 text-xs text-blue-400">({onlineUsers.length})</span>
-            </h2>
+                  Online Users <span className="ml-1 text-xs text-blue-400">({onlineUsers.length})</span>
+                </h2>
               </div>
               <div className="card-body">
-            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
-              {onlineUsers.length > 0 ? (
-                onlineUsers.map((name, i) => (
+                <div className="flex flex-col gap-2 max-h-80 overflow-y-auto custom-scrollbar pr-1">
+                  {onlineUsers.length > 0 ? (
+                    onlineUsers.map((name, i) => (
                       <div key={i} className="flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950 dark:to-indigo-950 hover:from-blue-100 hover:to-indigo-100 dark:hover:from-blue-900 dark:hover:to-indigo-900 transition-all duration-300 border border-blue-100 dark:border-blue-800 shadow-sm hover:scale-105">
                         <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-200 to-indigo-200 dark:from-blue-700 dark:to-indigo-700 flex items-center justify-center text-lg font-bold text-blue-700 dark:text-white border-2 border-blue-300 dark:border-blue-700">
-                      {name[0] || '?'}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-blue-800 dark:text-white truncate">{name}</p>
-                  </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-gray-500 dark:text-gray-300 text-sm text-center py-8">No users online</p>
-            )}
-          </div>
-      </div>
+                          {name[0] || '?'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-blue-800 dark:text-white truncate">{name}</p>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-gray-500 dark:text-gray-300 text-sm text-center py-8">No users online</p>
+                  )}
+                </div>
+              </div>
             </div>
-            
-          <div className="border-t border-blue-100 dark:border-blue-800 my-2"></div>
-            
+
+            <div className="border-t border-blue-100 dark:border-blue-800 my-2"></div>
+
             <div className="card">
               <div className="card-header">
                 <h3 className="heading-4 flex items-center gap-1 text-blue-700 dark:text-blue-200">🤖 AI Suggestions</h3>
               </div>
               <div className="card-body">
-            {aiSuggestions && aiSuggestions.length > 0 ? (
+                {aiSuggestions && aiSuggestions.length > 0 ? (
                   <ul className="list-disc pl-5 space-y-2">
-                {aiSuggestions.map((s, i) => (
-                  <li key={i} className="text-blue-800 dark:text-blue-100 text-sm">{s}</li>
-                ))}
-              </ul>
-            ) : (
-              <span className="text-xs text-blue-600 dark:text-blue-100">No suggestions at this time</span>
-            )}
-          </div>
-          </div>
-           
-            
-           
+                    {aiSuggestions.map((s, i) => (
+                      <li key={i} className="text-blue-800 dark:text-blue-100 text-sm">{s}</li>
+                    ))}
+                  </ul>
+                ) : (
+                  <span className="text-xs text-blue-600 dark:text-blue-100">No suggestions at this time</span>
+                )}
+              </div>
+            </div>
+
+
+
             <div className="card">
               <div className="card-header">
                 <h3 className="heading-4 flex items-center gap-1 text-amber-700 dark:text-amber-200">🌟 Motivational Quote</h3>
@@ -2597,41 +2612,41 @@ export default function EmployeeSelfProfile() {
                 <span className="italic text-amber-800 dark:text-amber-100 text-sm">{todayQuote}</span>
               </div>
             </div>
-            
+
             <div className="card">
               <div className="card-header">
                 <h3 className="heading-4 flex items-center gap-1 text-rose-700 dark:text-rose-200">🎉 Upcoming Holidays</h3>
               </div>
               <div className="card-body">
-            {Object.entries(calendarDaysCreative)
-              .filter(([date, info]) => info.type === "holiday" && new Date(date) >= new Date())
-              .sort(([a], [b]) => a.localeCompare(b))
-              .slice(0, 3)
-              .map(([date, info], i) => (
+                {Object.entries(calendarDaysCreative)
+                  .filter(([date, info]) => info.type === "holiday" && new Date(date) >= new Date())
+                  .sort(([a], [b]) => a.localeCompare(b))
+                  .slice(0, 3)
+                  .map(([date, info], i) => (
                     <div key={i} className="flex items-center gap-2 text-sm mb-2">
                       <span className="font-bold text-rose-800 dark:text-rose-100">{date}</span>
                       <span className="text-rose-700 dark:text-rose-200">{info.reason || "Holiday"}</span>
-                </div>
-              ))}
-            {Object.entries(calendarDaysCreative).filter(([date, info]) => info.type === "holiday" && new Date(date) >= new Date()).length === 0 && (
+                    </div>
+                  ))}
+                {Object.entries(calendarDaysCreative).filter(([date, info]) => info.type === "holiday" && new Date(date) >= new Date()).length === 0 && (
                   <span className="text-xs text-rose-600 dark:text-rose-100">No upcoming holidays</span>
-            )}
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
-        </div>
-      </div>
-      
+
       <ChatbotWidget />
-      
+
       {/* AI Chatbot */}
       <AIChatbot />
-         
+
       {attendanceSummary && (
         <div className="card mb-4 flex flex-col md:flex-row gap-6 items-center justify-center">
         </div>
       )}
-      
+
       {showShiftPopup && shiftCountdown !== null && (
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-8 flex flex-col items-center max-w-md mx-4">
@@ -2651,12 +2666,12 @@ export default function EmployeeSelfProfile() {
               </p>
             </div>
             <div className="flex gap-3 w-full">
-            <button
+              <button
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold hover:scale-105"
-              onClick={handleLogout}
-            >
-              Log Out Now
-            </button>
+                onClick={handleLogout}
+              >
+                Log Out Now
+              </button>
               <button
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-gray-300 to-gray-400 dark:from-gray-700 dark:to-gray-600 text-gray-700 dark:text-gray-300 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 font-semibold hover:scale-105"
                 onClick={() => setShowShiftPopup(false)}
@@ -2675,7 +2690,7 @@ export default function EmployeeSelfProfile() {
 const calculateMonthTotalHours = async (userId: string, monthKey: string) => {
   let totalSec = 0;
   // Fetch all attendance records for the month
-  const attQuery = query(collection(db, "attendance"), where("userId", "==", userId));  const attSnap = await getDocs(attQuery);
+  const attQuery = query(collection(db, "attendance"), where("userId", "==", userId)); const attSnap = await getDocs(attQuery);
   attSnap.forEach(docSnap => {
     const data = docSnap.data();
     if (data.userId === userId && data.date && data.date.startsWith(monthKey)) {
@@ -2712,12 +2727,11 @@ function AIInsightsWidget({ insights }: { insights: AIInsight[] }) {
       <div className="card-body">
         <div className="space-y-3">
           {insights.slice(0, 3).map((insight, index) => (
-            <div key={index} className={`p-3 rounded-lg border-l-4 ${
-              insight.priority === 'critical' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' :
-              insight.priority === 'high' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' :
-              insight.priority === 'medium' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
-              'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-            }`}>
+            <div key={index} className={`p-3 rounded-lg border-l-4 ${insight.priority === 'critical' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' :
+                insight.priority === 'high' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' :
+                  insight.priority === 'medium' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
+                    'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              }`}>
               <div className="flex items-start gap-2">
                 {insight.type === 'alert' && <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />}
                 {insight.type === 'trend' && <TrendingUp className="h-4 w-4 text-blue-600 mt-0.5" />}
@@ -2727,12 +2741,11 @@ function AIInsightsWidget({ insights }: { insights: AIInsight[] }) {
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{insight.description}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs text-gray-500">Confidence: {Math.round(insight.confidence * 100)}%</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      insight.priority === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                      insight.priority === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                      insight.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                      'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
-                    }`}>
+                    <span className={`text-xs px-2 py-1 rounded-full ${insight.priority === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                        insight.priority === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                          insight.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      }`}>
                       {insight.priority}
                     </span>
                   </div>
@@ -2804,11 +2817,10 @@ function SmartRecommendationsWidget({ recommendations }: { recommendations: Smar
           {recommendations.slice(0, 3).map((rec, index) => (
             <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div className="flex items-start gap-2">
-                <div className={`p-1 rounded-full ${
-                  rec.impact === 'high' ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-200' :
-                  rec.impact === 'medium' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-200' :
-                  'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-200'
-                }`}>
+                <div className={`p-1 rounded-full ${rec.impact === 'high' ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-200' :
+                    rec.impact === 'medium' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-200' :
+                      'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-200'
+                  }`}>
                   {rec.impact === 'high' ? '🔥' : rec.impact === 'medium' ? '⚡' : '💡'}
                 </div>
                 <div className="flex-1">
