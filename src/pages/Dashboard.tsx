@@ -1257,9 +1257,17 @@ export default function EmployeeSelfProfile() {
       const DEFAULT_WORKING_DAYS = 23;
       const DEFAULT_ENTITLED_LEAVE = 1;
       const MAX_CARRY_FORWARD = 2;
-
       // --- Calculate today's hours ---
-      const secToday = sessions.reduce((acc: number, s: any) => {
+      // Read today's attendance doc fresh from Firestore instead of the
+      // component's `sessions` state, which is still stale at this point
+      // (handleLogoutUpdate writes the final logout time to Firestore but
+      // doesn't update this component's local state before this function
+      // runs) — using the stale state made every logout compute as 0 hours
+      // worked, which then got misclassified as an unpaid leave day below.
+      const todayAttendanceSnap = await getDoc(doc(db, "attendance", `${user.uid}_${date}`));
+      const todaySessions = todayAttendanceSnap.exists() ? (todayAttendanceSnap.data().sessions || []) : sessions;
+
+      const secToday = todaySessions.reduce((acc: number, s: any) => {
         if (!s.login || !s.logout) return acc;
         const login = parseTimeToDate(s.login);
         const logout = parseTimeToDate(s.logout);
@@ -2279,9 +2287,9 @@ export default function EmployeeSelfProfile() {
       {/* Toast Notification */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 p-4 rounded-xl shadow-2xl max-w-sm transform transition-all duration-300 ${toast.type === 'success' ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white' :
-            toast.type === 'error' ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white' :
-              toast.type === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
-                'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+          toast.type === 'error' ? 'bg-gradient-to-r from-rose-500 to-red-500 text-white' :
+            toast.type === 'warning' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white' :
+              'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
           }`}>
           <div className="flex items-center gap-2">
             <span className="text-lg">
@@ -2371,8 +2379,8 @@ export default function EmployeeSelfProfile() {
               onClick={handleLogout}
               disabled={loggingOut}
               className={`flex items-center gap-2 px-6 py-3 rounded-xl shadow-lg transition-all duration-300 ${loggingOut
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 hover:scale-105'
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-gradient-to-r from-rose-500 to-pink-500 text-white hover:from-rose-600 hover:to-pink-600 hover:scale-105'
                 }`}
             >
               {loggingOut ? (
@@ -2404,7 +2412,8 @@ export default function EmployeeSelfProfile() {
           {/* Main Content: col-span-2 */}
           <div className="xl:col-span-2 flex flex-col gap-6">
             {/* Quick Stats */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               <div className="stats-card stats-card-success">
                 <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{attendanceSummary ? attendanceSummary.presentDays : 0}</span>
                 <span className="text-xs text-emerald-800 dark:text-emerald-100 mt-1">Present Days</span>
@@ -2417,16 +2426,11 @@ export default function EmployeeSelfProfile() {
                 <span className="text-2xl font-bold text-amber-700 dark:text-amber-200">{totalLogins}</span>
                 <span className="text-xs text-amber-800 dark:text-amber-100 mt-1">Total Logins</span>
               </div>
-              <div className="stats-card stats-card-primary">
-                <span className="text-2xl font-bold text-blue-700 dark:text-blue-200">{badgeStats.badge}</span>
-
-              </div>
               <div className="stats-card stats-card-success">
                 <span className="text-2xl font-bold text-teal-700 dark:text-teal-200">{totalHours || "0h 0m"}</span>
                 <span className="text-xs text-teal-800 dark:text-teal-100 mt-1">Total Hours</span>
               </div>
             </div>
-
             {/* Calendar Section */}
             <div className="card">
               <div className="card-header">
@@ -2728,9 +2732,9 @@ function AIInsightsWidget({ insights }: { insights: AIInsight[] }) {
         <div className="space-y-3">
           {insights.slice(0, 3).map((insight, index) => (
             <div key={index} className={`p-3 rounded-lg border-l-4 ${insight.priority === 'critical' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' :
-                insight.priority === 'high' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' :
-                  insight.priority === 'medium' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
-                    'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+              insight.priority === 'high' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20' :
+                insight.priority === 'medium' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
+                  'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
               }`}>
               <div className="flex items-start gap-2">
                 {insight.type === 'alert' && <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5" />}
@@ -2742,9 +2746,9 @@ function AIInsightsWidget({ insights }: { insights: AIInsight[] }) {
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs text-gray-500">Confidence: {Math.round(insight.confidence * 100)}%</span>
                     <span className={`text-xs px-2 py-1 rounded-full ${insight.priority === 'critical' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
-                        insight.priority === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
-                          insight.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
-                            'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                      insight.priority === 'high' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200' :
+                        insight.priority === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                          'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
                       }`}>
                       {insight.priority}
                     </span>
@@ -2818,8 +2822,8 @@ function SmartRecommendationsWidget({ recommendations }: { recommendations: Smar
             <div key={index} className="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
               <div className="flex items-start gap-2">
                 <div className={`p-1 rounded-full ${rec.impact === 'high' ? 'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-200' :
-                    rec.impact === 'medium' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-200' :
-                      'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-200'
+                  rec.impact === 'medium' ? 'bg-yellow-100 text-yellow-600 dark:bg-yellow-900 dark:text-yellow-200' :
+                    'bg-green-100 text-green-600 dark:bg-green-900 dark:text-green-200'
                   }`}>
                   {rec.impact === 'high' ? '🔥' : rec.impact === 'medium' ? '⚡' : '💡'}
                 </div>
