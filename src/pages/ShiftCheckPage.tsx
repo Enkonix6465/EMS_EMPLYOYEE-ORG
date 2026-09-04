@@ -191,8 +191,8 @@ const ShiftCheckPage = () => {
 
       // Only allow access if within shift hours
       setStatus("valid");
-      setMessage("✅ Access granted. Within shift hours. Redirecting in 10 seconds...");
-    };
+      setMessage("✅ Access granted. Within shift hours.");
+        };
 
     const unsub = onAuthStateChanged(auth, (user) => {
       if (user) checkShift(user);
@@ -275,7 +275,11 @@ const ShiftCheckPage = () => {
 
         {status === "valid" && (
           <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-md text-green-800 text-sm font-medium">
-            Your shift is active! ({shiftTime.startTime} - {shiftTime.endTime})
+            <div>Your shift is active! ({shiftTime.startTime} - {shiftTime.endTime})</div>
+            <div className="flex items-center justify-center gap-2 mt-3">
+              <div className="animate-spin h-5 w-5 border-2 border-green-600 border-t-transparent rounded-full" />
+              <span className="font-semibold">Redirecting to dashboard in {countdown}s...</span>
+            </div>
           </div>
         )}
 
