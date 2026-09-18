@@ -111,7 +111,7 @@ function Login() {
           screenSize,
           loginTime: new Date().toISOString(),
         });
-        navigate("/ShiftCheckPage");
+        navigate("/shift-check", { replace: true });
       }
     } catch (err) {
       toast.error("Invalid login credentials");

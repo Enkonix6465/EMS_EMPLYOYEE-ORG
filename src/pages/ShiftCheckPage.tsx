@@ -118,10 +118,21 @@ const ShiftCheckPage = () => {
   useEffect(() => {
     const checkShift = async (user: any) => {
       const today = getCurrentDate();
-      // Try both collections for shift assignment
-      let shiftSnap = await getDoc(doc(db, "shiftAssignments", user.uid, "dates", today));
-      if (!shiftSnap.exists()) {
-        shiftSnap = await getDoc(doc(db, "geoAssignments", user.uid, "dates", today));
+      // Shift times live ONLY in shiftAssignments. geoAssignments holds the
+      // work location / WFH flag and has no startTime/endTime, so it can't be
+      // used as a fallback here (it used to crash on startTime.split).
+      let shiftSnap;
+      try {
+        shiftSnap = await getDoc(doc(db, "shiftAssignments", user.uid, "dates", today));
+      } catch (err: any) {
+        console.error("Could not read shift assignment:", err);
+        setStatus("none");
+        setMessage(`⚠ Could not read your shift (${err?.code || err?.message}). Contact HR.`);
+        setTimeout(() => {
+          signOut(auth);
+          navigate("/login", { replace: true });
+        }, 6000);
+        return;
       }
 
       // 1. Show local time immediately
@@ -150,27 +161,43 @@ const ShiftCheckPage = () => {
       }
       const nowSec = data.hour * 3600 + data.minute * 60 + data.seconds;
 
-      if (!shiftSnap.exists()) {
+      const shiftData = shiftSnap.exists() ? shiftSnap.data() : null;
+      if (!shiftData?.startTime || !shiftData?.endTime) {
         setStatus("none");
-        setMessage("⚠ No shift assigned for today. Access denied.");
-        // Immediately sign out and redirect
+        setMessage(
+          `⚠ No shift assigned for today (${today}). Ask HR to assign a shift on the Shift Assign page. Access denied.`
+        );
         setTimeout(() => {
           signOut(auth);
           navigate("/login", { replace: true });
-        }, 2000);
+        }, 6000);
         return;
       }
 
-      const { startTime, endTime } = shiftSnap.data();
+      const { startTime, endTime } = shiftData;
       setShiftTime({ startTime, endTime });
 
+      const toSec = (t: string) => {
+        const [h = 0, m = 0, s = 0] = t.split(":").map(Number);
+        return h * 3600 + m * 60 + s;
+      };
+      const startSec = toSec(startTime);
+      const endSec = toSec(endTime);
 
-      const [sh, sm, ss] = startTime.split(":").map(Number);
-      const [eh, em, es] = endTime.split(":").map(Number);
-      const startSec = sh * 3600 + sm * 60 + ss;
-      const endSec = eh * 3600 + em * 60 + es;
+      // Overnight shift (e.g. 22:00 -> 06:00, or a day shift pushed past
+      // midnight by "extra hours"): valid if after start OR before end.
+      const overnight = endSec <= startSec;
+      const inShift = overnight
+        ? nowSec >= startSec || nowSec <= endSec
+        : nowSec >= startSec && nowSec <= endSec;
 
-      // Check if current time is within shift hours
+      if (inShift) {
+        setStatus("valid");
+        setMessage("✅ Access granted. Within shift hours.");
+        return;
+      }
+
+      // Outside the shift window: before it starts, or after it ended.
       if (nowSec < startSec) {
         const waitMin = Math.floor((startSec - nowSec) / 60);
         const waitSec = (startSec - nowSec) % 60;
@@ -180,24 +207,16 @@ const ShiftCheckPage = () => {
         setTimeout(() => {
           signOut(auth);
           navigate("/login", { replace: true });
-        }, 3000);
+        }, 6000);
         return;
       }
 
-      if (nowSec > endSec) {
-        setStatus("none");
-        setMessage("⛔ Access denied. Your shift is over. Please login during your shift hours only.");
-        // Immediately sign out and redirect
-        setTimeout(() => {
-          signOut(auth);
-          navigate("/login", { replace: true });
-        }, 3000);
-        return;
-      }
-
-      // Only allow access if within shift hours
-      setStatus("valid");
-      setMessage("✅ Access granted. Within shift hours.");
+      setStatus("none");
+      setMessage(`⛔ Access denied. Your shift (${startTime} - ${endTime}) is over. Please login during your shift hours only.`);
+      setTimeout(() => {
+        signOut(auth);
+        navigate("/login", { replace: true });
+      }, 6000);
     };
 
     const unsub = onAuthStateChanged(auth, (user) => {
